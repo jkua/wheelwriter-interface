@@ -15,8 +15,8 @@ This project consists of:
 
 1. Hardware interface module - this attaches to the back of the Wheelwriter as
 the OEM printer option did, and connect to the 10-pin option connector located 
-behind the 70 mm wide hinged panel on the top rear of the typewriter. The core 
-electronics are an [Arduino Nano RP2040] (https://docs.arduino.cc/hardware/nano-rp2040-connect)
+behind the 70 mm-wide hinged panel on the top rear of the typewriter. The core 
+electronics are an [Arduino Nano RP2040](https://docs.arduino.cc/hardware/nano-rp2040-connect)
 and a custom shield to interface with the Wheelwriter's option connector. 
 
 2. Arduino Wheelwriter driver - this communicates with the Wheelwriter over the 
