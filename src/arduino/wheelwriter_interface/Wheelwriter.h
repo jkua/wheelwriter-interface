@@ -89,6 +89,36 @@ static const uint8_t WW_CARRIAGE_DIRECTION_RIGHT = 0x80;
 static const uint8_t WW_PLATEN_DIRECTION_UP = 0x80;
 static const uint8_t WW_PLATEN_DIRECTION_DOWN = 0x00;
 
+//------------------------------------------------------------------------------------------------
+// ASCII to Wheelwriter printwheel translation table
+// The Wheelwriter printwheel code indicates the position of the character on the printwheel. 
+// “a” (code 01) is at the 12 o’clock position of the printwheel. Going counter clockwise, 
+// “n” (code 02) is next character on the printwheel followed by “r” (code 03), “m” (code 04),
+// “c” (code 05), “s” (code 06), “d” (code 07), “h” (code 08), and so on.
+//------------------------------------------------------------------------------------------------
+static const char ascii2Printwheel[160] =  
+// col: 00    01    02    03    04    05    06    07    08    09    0A    0B    0C    0D    0E    0F    row:
+//      sp     !     "     #     $     %     &     '     (     )     *     +     ,     -     .     /
+      {0x00, 0x49, 0x4b, 0x38, 0x37, 0x39, 0x3f, 0x4c, 0x23, 0x16, 0x36, 0x3b, 0x0c, 0x0e, 0x57, 0x28, // 20
+//       0     1     2     3     4     5     6     7     8     9     :     ;     <     =     >     ?
+       0x30, 0x2e, 0x2f, 0x2c, 0x32, 0x31, 0x33, 0x35, 0x34, 0x2a ,0x4e, 0x50, 0x00, 0x4d, 0x00, 0x4a, // 30
+//       @     A     B     C     D     E     F     G     H     I     J     K     L     M     N     O
+       0x3d, 0x20, 0x12, 0x1b, 0x1d, 0x1e, 0x11, 0x0f, 0x14, 0x1F, 0x21, 0x2b, 0x18, 0x24, 0x1a, 0x22, // 40
+//       P     Q     R     S     T     U     V     W     X     Y     Z     [     \     ]     ^     _   
+       0x15, 0x3e, 0x17, 0x19, 0x1c, 0x10, 0x0d, 0x29, 0x2d, 0x26, 0x13, 0x41, 0x00, 0x40, 0x00, 0x4f, // 50
+//       `     a     b     c     d     e     f     g     h     i     j     k     l     m     n     o
+       0x00, 0x01, 0x59, 0x05, 0x07, 0x60, 0x0a, 0x5a, 0x08, 0x5d, 0x56, 0x0b, 0x09, 0x04, 0x02, 0x5f, // 60
+//       p     q     r     s     t     u     v     w     x     y     z     {     |     }     ~    DEL  
+       0x5c, 0x52, 0x03, 0x06, 0x5e, 0x5b, 0x53, 0x55, 0x51, 0x58, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, // 70
+//     
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 80      
+//     
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 90      
+//                   ¢                             §                                                  
+       0x00, 0x00, 0x3A, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // A0      
+//       °     ±     ²     ³                 ¶                                   ¼     ½              
+       0x44, 0x3C, 0x42, 0x43, 0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0x47, 0x00, 0x00};// B0
+
 class Wheelwriter {
 public:
 	Wheelwriter() {
@@ -105,10 +135,14 @@ public:
 
 	ww_model queryModel();
 	ww_printwheel reset();
+	void typeAscii(uint8_t ascii);
+	void typeAscii(uint8_t ascii, uint8_t advanceUsteps);
 	void typeCharacter(uint8_t wheelPosition);
 	void typeCharacter(uint8_t wheelPosition, uint8_t advanceUsteps);
-	void eraseCharater(uint8_t wheelPosition, uint8_t advanceUsteps);
+	void eraseCharacter(uint8_t wheelPosition, uint8_t advanceUsteps);
+	void movePlaten(int8_t usteps);
 	void movePlaten(uint8_t usteps, uint8_t direction);
+	void moveCarriage(int16_t usteps);
 	void moveCarriage(uint16_t usteps, uint8_t direction);
 	void spinWheel();
 	ww_printwheel queryPrintwheel();

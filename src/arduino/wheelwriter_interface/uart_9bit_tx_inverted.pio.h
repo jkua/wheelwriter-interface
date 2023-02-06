@@ -62,7 +62,7 @@ static inline void uart_9bit_tx_inverted_program_init(PIO pio, uint sm, uint off
     pio_sm_set_enabled(pio, sm, true);
 }
 static inline void uart_9bit_tx_inverted_program_put_word(PIO pio, uint sm, uint16_t word) {
-    pio_sm_put_blocking(pio, sm, (uint32_t)~word);
+    pio_sm_put_blocking(pio, sm, (uint32_t)(~word));
 }
 static inline void uart_9bit_tx_inverted_program_put_buffer(PIO pio, uint sm, const uint16_t *buffer, uint count) {
     int i;
