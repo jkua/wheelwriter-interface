@@ -72,7 +72,7 @@ void loop() {
       // delay(500);
 
       // circleTest();
-      characterTest(wheelwriter::TYPESTYLE_BOLD_UNDERLINE);
+      characterTest(wheelwriter::TYPESTYLE_NORMAL);
     }
   }
 }
@@ -102,21 +102,13 @@ void characterTest(wheelwriter::ww_typestyle style) {
   char buffer2[] = "abcdefghijklmnopqrstuvwxyz";
   char buffer3[] = "1234567890-=!@#$%\xa2&*()_+";
   char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
+  char* buffers[4] = {buffer1, buffer2, buffer3, buffer4};
   uint8_t charSpace = 10;
   uint8_t lineSpace = 16;
-  typewriter.typeAsciiString(buffer1, charSpace, style);
-  typewriter.movePlaten(lineSpace);
-  typewriter.moveCarriage(strlen(buffer1)*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
 
-  typewriter.typeAsciiString(buffer2, charSpace, style);
-  typewriter.movePlaten(lineSpace);
-  typewriter.moveCarriage(strlen(buffer2)*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
-
-  typewriter.typeAsciiString(buffer3, charSpace, style);
-  typewriter.movePlaten(lineSpace);
-  typewriter.moveCarriage(strlen(buffer3)*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
-
-  typewriter.typeAsciiString(buffer4, charSpace, style);
-  typewriter.movePlaten(lineSpace);
-  typewriter.moveCarriage(strlen(buffer4)*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
+  for (int i = 0; i < 4; i++) {
+    typewriter.typeAsciiString(buffers[i], charSpace, style);
+    typewriter.movePlaten(lineSpace);
+    typewriter.moveCarriage(strlen(buffers[i])*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
+  }
 }
