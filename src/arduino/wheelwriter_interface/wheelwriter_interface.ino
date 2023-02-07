@@ -54,15 +54,15 @@ void loop() {
 
       // typewriter.typeCharacter(0x01);
       // delay(500);
-      // typewriter.moveCarriage(10, wheelwriter::WW_CARRIAGE_DIRECTION_RIGHT);
+      // typewriter.moveCarriage(10, wheelwriter::CARRIAGE_DIRECTION_RIGHT);
       // delay(500);
       // typewriter.typeCharacter(0x59);
       // delay(500);
-      // typewriter.moveCarriage(10, wheelwriter::WW_CARRIAGE_DIRECTION_RIGHT);
+      // typewriter.moveCarriage(10, wheelwriter::CARRIAGE_DIRECTION_RIGHT);
       // delay(500);
       // typewriter.typeCharacter(0x05);
       // delay(500);
-      // typewriter.moveCarriage(10, wheelwriter::WW_CARRIAGE_DIRECTION_RIGHT);
+      // typewriter.moveCarriage(10, wheelwriter::CARRIAGE_DIRECTION_RIGHT);
 
       // typewriter.typeCharacter(0x01, 10);
       // delay(500);
@@ -71,7 +71,8 @@ void loop() {
       // typewriter.typeCharacter(0x05, 10);
       // delay(500);
 
-      circleTest();
+      // circleTest();
+      characterTest(wheelwriter::TYPESTYLE_BOLD_UNDERLINE);
     }
   }
 }
@@ -93,6 +94,29 @@ void circleTest() {
     typewriter.movePlaten(-dy[i]);
   }
   typewriter.movePlaten(127);
-  delay(300);
   typewriter.movePlaten(127);
+}
+
+void characterTest(wheelwriter::ww_typestyle style) {
+  char buffer1[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  char buffer2[] = "abcdefghijklmnopqrstuvwxyz";
+  char buffer3[] = "1234567890-=!@#$%\xa2&*()-+";
+  char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
+  uint8_t charSpace = 10;
+  uint8_t lineSpace = 16;
+  typewriter.typeAsciiString(buffer1, charSpace, style);
+  typewriter.movePlaten(lineSpace);
+  typewriter.moveCarriage(strlen(buffer1)*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
+
+  typewriter.typeAsciiString(buffer2, charSpace, style);
+  typewriter.movePlaten(lineSpace);
+  typewriter.moveCarriage(strlen(buffer2)*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
+
+  typewriter.typeAsciiString(buffer3, charSpace, style);
+  typewriter.movePlaten(lineSpace);
+  typewriter.moveCarriage(strlen(buffer3)*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
+
+  typewriter.typeAsciiString(buffer4, charSpace, style);
+  typewriter.movePlaten(lineSpace);
+  typewriter.moveCarriage(strlen(buffer4)*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
 }

@@ -10,7 +10,7 @@
 namespace wheelwriter {
 
 enum ww_model {
-	UNKNOWN = 0x00,
+	UNKNOWN_MODEL = 0x00,
 	WHEELWRITER_3 = 0x06,
 	WHEELWRITER_5 = 0x25,
 	WHEELWRITER_6 = 0x26
@@ -32,6 +32,16 @@ enum ww_command {
 	UNKNOWN_0C = 0x0c,
 	QUERY_OPERATION = 0x0d,
 	SEND_CODE = 0x0e,
+};
+
+enum ww_platen_direction {
+	PLATEN_DIRECTION_DOWN = 0x00,
+	PLATEN_DIRECTION_UP = 0x80
+};
+
+enum ww_carriage_direction {
+	CARRIAGE_DIRECTION_LEFT = 0x00,
+	CARRIAGE_DIRECTION_RIGHT = 0x80
 };
 
 enum ww_printwheel {
@@ -59,6 +69,7 @@ enum ww_status {
 };
 
 enum ww_operation {
+	NO_OPERATION = 0x00,
 	BACKSPACE = 0x04,
 	ERASE = 0x05,
 	CARRIAGE_RETURN = 0x07,
@@ -80,23 +91,26 @@ enum ww_code {
 	CODE_ONLY = 0xe7 
 };
 
+enum ww_typestyle {
+	TYPESTYLE_NORMAL = 0x00,
+	TYPESTYLE_BOLD = 0x01,
+	TYPESTYLE_UNDERLINE = 0x10,
+	TYPESTYLE_BOLD_UNDERLINE = 0x11
+};
+
 static const uint16_t WW_MOTOR_CTRL_ADDR = 0x121;
 static const uint8_t WW_PRINTWHEEL_MAX = 0x60;
 static const uint8_t WW_CARRIAGE_ADVANCE_USTEP_MAX = 63;
 static const uint8_t WW_PLATEN_ADVANCE_USTEP_MAX = 127;
-static const uint8_t WW_CARRIAGE_DIRECTION_LEFT = 0x00;
-static const uint8_t WW_CARRIAGE_DIRECTION_RIGHT = 0x80;
-static const uint8_t WW_PLATEN_DIRECTION_UP = 0x80;
-static const uint8_t WW_PLATEN_DIRECTION_DOWN = 0x00;
 
 //------------------------------------------------------------------------------------------------
-// ASCII to Wheelwriter printwheel translation table
+// ASCII (ISO 8859-1) to Wheelwriter US printwheel translation table
 // The Wheelwriter printwheel code indicates the position of the character on the printwheel. 
 // “a” (code 01) is at the 12 o’clock position of the printwheel. Going counter clockwise, 
 // “n” (code 02) is next character on the printwheel followed by “r” (code 03), “m” (code 04),
 // “c” (code 05), “s” (code 06), “d” (code 07), “h” (code 08), and so on.
 //------------------------------------------------------------------------------------------------
-static const char ascii2Printwheel[160] =  
+static const char ascii2UsPrintwheelTable[160] =  
 // col: 00    01    02    03    04    05    06    07    08    09    0A    0B    0C    0D    0E    0F    row:
 //      sp     !     "     #     $     %     &     '     (     )     *     +     ,     -     .     /
       {0x00, 0x49, 0x4b, 0x38, 0x37, 0x39, 0x3f, 0x4c, 0x23, 0x16, 0x36, 0x3b, 0x0c, 0x0e, 0x57, 0x28, // 20
@@ -117,7 +131,7 @@ static const char ascii2Printwheel[160] =
 //                   ¢                             §                                                  
        0x00, 0x00, 0x3A, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // A0      
 //       °     ±     ²     ³                 ¶                                   ¼     ½              
-       0x44, 0x3C, 0x42, 0x43, 0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0x47, 0x00, 0x00};// B0
+       0x44, 0x3C, 0x43, 0x42, 0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0x47, 0x00, 0x00};// B0
 
 class Wheelwriter {
 public:
@@ -135,21 +149,24 @@ public:
 
 	ww_model queryModel();
 	ww_printwheel reset();
-	void typeAscii(uint8_t ascii);
-	void typeAscii(uint8_t ascii, uint8_t advanceUsteps);
-	void typeCharacter(uint8_t wheelPosition);
-	void typeCharacter(uint8_t wheelPosition, uint8_t advanceUsteps);
-	void eraseCharacter(uint8_t wheelPosition, uint8_t advanceUsteps);
+	void typeAscii(char ascii, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeAscii(char ascii, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeAsciiString(char* string, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeCharacter(uint8_t wheelPosition, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
+	void eraseCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
 	void movePlaten(int8_t usteps);
-	void movePlaten(uint8_t usteps, uint8_t direction);
+	void movePlaten(uint8_t usteps, ww_platen_direction direction);
 	void moveCarriage(int16_t usteps);
-	void moveCarriage(uint16_t usteps, uint8_t direction);
+	void moveCarriage(uint16_t usteps, ww_carriage_direction direction);
 	void spinWheel();
 	ww_printwheel queryPrintwheel();
-	void setRepeatMode(uint8_t repeatMode);
+	void setRepeatMode(ww_repeat_mode repeatMode);
 	ww_status queryStatus();
 	ww_operation queryOperation();
-	void sendCode(uint8_t code);
+	void sendCode(ww_code code);
+
+	char ascii2Printwheel(char ascii);
 
 private:
 	uint init_;
