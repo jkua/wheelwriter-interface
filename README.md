@@ -16,7 +16,7 @@ This project consists of:
 1. Hardware interface module - this attaches to the back of the Wheelwriter as
 the OEM printer option did, and connect to the 10-pin option connector located 
 behind the 70 mm-wide hinged panel on the top rear of the typewriter. The core 
-electronics are an [Arduino Nano RP2040](https://docs.arduino.cc/hardware/nano-rp2040-connect)
+electronics are an [Arduino Nano RP2040 Connect](https://docs.arduino.cc/hardware/nano-rp2040-connect)
 and a custom shield to interface with the Wheelwriter's option connector. 
 
 2. Arduino Wheelwriter driver - this communicates with the Wheelwriter over the 
@@ -41,7 +41,7 @@ His implementation bit-bangs a TX line to drive a N-channel MOSFET.
 Be sure to check out his 
 [Smith Corona typewriter to printer conversion](https://www.youtube.com/watch?v=le4C2HeNrdQ)!
 
-Ryan Jarvis/[Cabalist](https://github.com/Cabalist)) provided a 
+Ryan Jarvis/[Cabalist](https://github.com/Cabalist) provided a 
 [complete printwheel mapping](https://github.com/tofergregg/IBM-Wheelwriter-Hack/issues/5) 
 for US language printwheels.
 
