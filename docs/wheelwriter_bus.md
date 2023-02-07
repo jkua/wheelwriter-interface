@@ -25,3 +25,29 @@ for more information.
 as reverse engineered by [RussellSenior](https://github.com/RussellSenior).
 
 The motor controller appears to be address `0x21`.
+
+The basic protocol for communicating with the motor controller is to send 
+
+`<address> <command> <optional data 1> <optional data 2>`
+
+where each element is one byte. Each byte is acknowledged by the motor 
+controller, such that this looks like (`<client> (controller)`):
+
+`<address> (ACK) <command> (ACK/response) <optional data 1> (ACK) <optional data 2> (ACK)`
+
+where `ACK` is simply `0x00`. For query commands, the controller will send a 
+`response` byte rather than an `ACK`. 
+
+As this is a half-duplex bus, the client must allow for the `ACK`s by either 
+monitoring the bus for these responses or inserting a long delay (~450 ms to be 
+safe). Failure to do so will result in garbled communication as the controller 
+responses will step on the client transmissions. Some implementations simply 
+wait for the bus to go low and then high again to detect the ACKs. Coupled with 
+an additional delay in case the response is non-zero, this should be a reliable 
+method.
+
+However, this interface reads the motor controller replies in order to properly 
+understand the query responses. Looking at the logic board output, it prepends 
+any type or movement command with a status query. Likely this is to ensure that 
+the carriage and platen have stopped moving before issuing the next type or 
+movement command.
