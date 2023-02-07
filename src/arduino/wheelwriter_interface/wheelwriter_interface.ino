@@ -100,7 +100,7 @@ void circleTest() {
 void characterTest(wheelwriter::ww_typestyle style) {
   char buffer1[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   char buffer2[] = "abcdefghijklmnopqrstuvwxyz";
-  char buffer3[] = "1234567890-=!@#$%\xa2&*()-+";
+  char buffer3[] = "1234567890-=!@#$%\xa2&*()_+";
   char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
   uint8_t charSpace = 10;
   uint8_t lineSpace = 16;
