@@ -19,9 +19,10 @@ behind the 70 mm-wide hinged panel on the top rear of the typewriter. The core
 electronics are an [Arduino Nano RP2040 Connect](https://docs.arduino.cc/hardware/nano-rp2040-connect)
 and a custom shield to interface with the Wheelwriter's option connector. 
 
-2. Arduino Wheelwriter driver - this communicates with the Wheelwriter over the 
-serial bus and provide low-level control of the typewriter, including platen 
-and carriage positioning and typehead imprinting.
+2. [Arduino Wheelwriter driver](src/arduino/wheelwriter_interface) - this 
+communicates with the Wheelwriter over the serial bus and provide low-level 
+control of the typewriter, including platen and carriage positioning and 
+typehead imprinting.
 
 3. REST service - the built-in WiFi connectivity on the Nano supports a REST 
 server which allows a modern computer, smartphone, or tablet to control the
