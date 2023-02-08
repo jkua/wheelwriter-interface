@@ -55,6 +55,15 @@ the 8051 compatible [Dallas Semi DS89C440](https://github.com/jim11662418/wheelw
 and [STC Micro STC15W4K32S4](https://github.com/jim11662418/wheelwriter-teletype)
 that are very nice.
 
+[MicroCoreLabs](https://github.com/MicroCoreLabs) created an 
+[Lattice FPGA implementation](https://github.com/MicroCoreLabs/Projects/tree/master/Wheelwriter) 
+and an [Arduino Leonardo implementation](https://github.com/MicroCoreLabs/Projects/tree/master/Wheelwriter2). 
+Both implement a serial port that translates an ASCII character stream to motor 
+controller commands. The Arduino implementation directly uses the ATmega32u4's 
+UART an interestingly toggles the transmitter off when not sending. 
+[Here's a YouTube video](https://www.youtube.com/watch?v=q8gCYw75E1A) of the 
+FPGA version running.
+
 [CadetWriter](https://github.com/IBM-1620/Cadetwriter) is an effort by Dave 
 Babcock and Stephen Casner to interface to a Wheelwriter 1000 by instead 
 sitting between the keyboard and the logic controller. This work was developed 
