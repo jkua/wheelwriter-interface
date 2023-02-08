@@ -5,7 +5,7 @@
 //
 #pragma once
 
-#include "Uart9bit.h"
+#include "uart_9bit/Uart9bit.h"
 
 namespace wheelwriter {
 

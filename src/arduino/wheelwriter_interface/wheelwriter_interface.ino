@@ -1,7 +1,7 @@
 // Wheelwriter interface for an Arduino Nano RP2040 Connect
 // Copyright (c) 2023 John Kua <john@kua.fm>
 //
-#include "Uart9bit.h"
+#include "uart_9bit/Uart9bit.h"
 #include "Wheelwriter.h"
 
 Uart9Bit uart;
