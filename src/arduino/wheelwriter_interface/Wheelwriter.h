@@ -98,6 +98,13 @@ enum ww_typestyle {
 	TYPESTYLE_BOLD_UNDERLINE = 0x11
 };
 
+enum ww_linespacing {
+	LINESPACING_ONE = 0x00,
+	LINESPACING_ONE_POINT_FIVE = 0x01,
+	LINESPACING_TWO = 0x02,
+	LINESPACING_THREE = 0x03
+};
+
 static const uint16_t WW_MOTOR_CTRL_ADDR = 0x121;
 static const uint8_t WW_PRINTWHEEL_MAX = 0x60;
 static const uint8_t WW_CARRIAGE_ADVANCE_USTEP_MAX = 63;
@@ -138,9 +145,13 @@ public:
 	Wheelwriter() {
 		init_ = 0;
 	}
-	void init(Uart9Bit* uart) {
+	void init(Uart9Bit* uart, uint16_t charSpace=10, uint8_t lineSpace=16) {
 		uart_ = uart;
+		charSpace_ = charSpace;
+		lineSpace_ = lineSpace;
+		lineSpacing_ = LINESPACING_ONE;
 		buffer[0] = WW_MOTOR_CTRL_ADDR;
+		horizontalMicrospaces_ = 0;
 		init_ = 1;
 	}
 	uint8_t sendCommand(ww_command command);
@@ -149,16 +160,22 @@ public:
 
 	ww_model queryModel();
 	ww_printwheel reset();
-	void typeAscii(char ascii, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeAsciiInPlace(char ascii, ww_typestyle style=TYPESTYLE_NORMAL);
 	void typeAscii(char ascii, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeAscii(char ascii, ww_typestyle style=TYPESTYLE_NORMAL);
 	void typeAsciiString(char* string, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
-	void typeCharacter(uint8_t wheelPosition, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeAsciiString(char* string, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeCharacterInPlace(uint8_t wheelPosition, ww_typestyle style=TYPESTYLE_NORMAL);
 	void typeCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeCharacter(uint8_t wheelPosition, ww_typestyle style=TYPESTYLE_NORMAL);
 	void eraseCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
 	void movePlaten(int8_t usteps);
 	void movePlaten(uint8_t usteps, ww_platen_direction direction);
 	void moveCarriage(int16_t usteps);
 	void moveCarriage(uint16_t usteps, ww_carriage_direction direction);
+	void moveCarriageSpaces(int16_t spaces);
+	void carriageReturn();
+	void lineFeed(ww_platen_direction direction=PLATEN_DIRECTION_UP);
 	void spinWheel();
 	ww_printwheel queryPrintwheel();
 	void setRepeatMode(ww_repeat_mode repeatMode);
@@ -167,11 +184,20 @@ public:
 	void sendCode(ww_code code);
 
 	char ascii2Printwheel(char ascii);
+	int16_t horizontalMicrospaces();
+	void setLeftMargin();
+	void setCharSpace(uint16_t usteps);
+	void setLineSpace(uint8_t usteps);
+	void setLineSpacing(ww_linespacing spacing);
 
 private:
 	uint init_;
 	Uart9Bit* uart_;
 	uint16_t buffer[4];
+	uint16_t charSpace_;
+	uint8_t lineSpace_;
+	ww_linespacing lineSpacing_;
+	int16_t horizontalMicrospaces_;
 };
 
 }; // namespace wheelwriter

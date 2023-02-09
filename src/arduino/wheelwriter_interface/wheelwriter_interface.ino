@@ -14,7 +14,7 @@ void setup() {
 
   // Level converter output enable - set to disable
   pinMode(6, OUTPUT);
-  digitalWrite(6, HIGH);
+  digitalWrite(6, LOW);
 
   // UART RX pin - remove when implemented in Uart9Bit
   pinMode(3, INPUT);
@@ -60,6 +60,8 @@ void loop() {
       Serial.write("help - print this help text\n");
       Serial.write("char - execute the character test\n");
       Serial.write("circle - execute the circle test\n");
+      Serial.write("raw - send raw commands\n");
+      Serial.write("sample - print a type sample\n");
       Serial.write("type - type characters on the typewriter\n");
     }
     else if (strcmp(token, "char") == 0) {
@@ -92,6 +94,37 @@ void loop() {
     else if (strcmp(token, "circle") == 0) {
       Serial.write("[FUNCTION] Circle Test\n");
       circleTest();
+    }
+    else if (strcmp(token, "raw") == 0) {
+      Serial.write("[FUNCTION] Command\n");
+      rawCommandFunction();
+    }
+    else if (strcmp(token, "sample") == 0) {
+      uint8_t plusPosition = 0x3b;
+      uint8_t underscorePosition = 0x4f;
+      token = strtok(NULL, delim);
+      char* end;
+      int i = 0;
+      while (token != NULL) {
+        long value = strtol(token, &end, 0);
+        if (token != end) {
+          if (i == 0) {
+            plusPosition = value;
+            i++;
+          }
+          else {
+            underscorePosition = value;
+            break;
+          }
+        }
+        token = strtok(NULL, delim);
+      }
+      Serial.write("[FUNCTION] Printwheel Sample ");
+      Serial.write("| plus: 0x");
+      Serial.print(plusPosition, HEX);
+      Serial.write(", - underscore: 0x");
+      Serial.print(underscorePosition, HEX);
+      printwheelSample(plusPosition, underscorePosition);
     }
     else if (strcmp(token, "type") == 0) {
       Serial.write("[FUNCTION] Type\n");
@@ -141,6 +174,8 @@ void circleTest() {
                  -12, -12, -12, -10, -10,  -9,  -7,  -5,  -4,  -2, 
                    0,   2,   4,   5,   7,   9,  10,  10,  12,  12, 
                   12,  12,  12,  11,  10,  10,   7,   7,   4,   3,   1};
+  typewriter.setLeftMargin();
+
   // Move to center
   typewriter.moveCarriage(100);
   for (int i = 0; i < strlen(buffer); i++) {
@@ -149,9 +184,9 @@ void circleTest() {
     typewriter.moveCarriage(dx[i]);
     typewriter.movePlaten(-dy[i]);
   }
+  typewriter.carriageReturn();
   typewriter.movePlaten(127);
   typewriter.movePlaten(127);
-  typewriter.moveCarriage(100, wheelwriter::CARRIAGE_DIRECTION_LEFT);
 }
 
 void characterTest(wheelwriter::ww_typestyle style) {
@@ -160,44 +195,182 @@ void characterTest(wheelwriter::ww_typestyle style) {
   char buffer3[] = "1234567890-=!@#$%\xa2&*()_+";
   char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
   char* buffers[4] = {buffer1, buffer2, buffer3, buffer4};
-  uint8_t charSpace = 10;
-  uint8_t lineSpace = 16;
+  typewriter.setLeftMargin();
 
   for (int i = 0; i < 4; i++) {
-    typewriter.typeAsciiString(buffers[i], charSpace, style);
-    typewriter.moveCarriage(strlen(buffers[i])*charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
-    typewriter.movePlaten(lineSpace);
+    typewriter.typeAsciiString(buffers[i], style);
+    typewriter.carriageReturn();
+    typewriter.lineFeed();
   }
 }
 
-void typeFunction() {
+void printwheelSample(const uint8_t plusPosition, const uint8_t underscorePosition) {
+  // A printwheel has 96 (0x60) characters
+  // This prints in a pair 16 x 6 arrays (regular and bold) with a border of alignment marks
+
+  // TODO: Read printwheel pitch at set charSpace and lineSpace appropriately
+
+  wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
+  typewriter.setLeftMargin();
+
+  // Row 0
+  typewriter.typeCharacter(plusPosition, typestyle);
+  typewriter.typeCharacter(plusPosition, typestyle);
+  typewriter.typeCharacter(underscorePosition, typestyle);
+  typewriter.moveCarriageSpaces(7);
+  typewriter.typeCharacter(plusPosition, typestyle);
+  typewriter.moveCarriageSpaces(9);
+  typewriter.typeCharacter(plusPosition, typestyle);
+  typewriter.carriageReturn();
+  typewriter.lineFeed();
+
+  // Row 1
+  typewriter.typeCharacter(plusPosition, typestyle);
+  typewriter.carriageReturn();
+  typewriter.lineFeed();
+
+  // Row 2-14
+  for (int sample = 0; sample < 2; sample++) {
+    switch (sample) {
+      case 0:
+        typestyle = wheelwriter::TYPESTYLE_NORMAL;
+        break;
+      case 1:
+        typestyle = wheelwriter::TYPESTYLE_BOLD;
+        break;
+    }
+    // Type all 96 printwheel positions in a 16 x 8 array
+    uint8_t wheelPosition = 1;
+    for (int row = 0; row < 6; row++) {
+      typewriter.moveCarriageSpaces(2);
+      for (int i = 0; i < 16; i++, wheelPosition++) {
+        typewriter.typeCharacter(wheelPosition, typestyle);
+        // Space after the 8th character
+        if (i == 7) {
+          typewriter.moveCarriageSpaces(1);
+        }
+      }
+      typewriter.carriageReturn();
+      typewriter.lineFeed();
+    }
+    // Space between samples
+    if (sample == 0) {
+      typewriter.typeCharacter(plusPosition, typestyle);
+      typewriter.moveCarriageSpaces(19);
+      typewriter.typeCharacter(plusPosition, typestyle);
+      typewriter.carriageReturn();
+      typewriter.lineFeed();
+    }
+  }
+  typestyle = wheelwriter::TYPESTYLE_NORMAL;
+  
+  // Row 15
+  typewriter.carriageReturn();
+  typewriter.lineFeed();
+
+  // Row 16
+  typewriter.typeCharacter(plusPosition, typestyle);
+  typewriter.moveCarriageSpaces(9);
+  typewriter.typeCharacter(plusPosition, typestyle);
+  typewriter.moveCarriageSpaces(9);
+  typewriter.typeCharacter(plusPosition, typestyle);
+  typewriter.carriageReturn();
+  typewriter.lineFeed();
+}
+
+void rawCommandFunction() {
   Serial.write("[BEGIN]\n");
+
+  while (true) {
+    if (Serial.available()) {
+      String inString = Serial.readStringUntil('\n');
+      inString.toLowerCase();
+      inString.toCharArray(inputBuffer, 64);
+
+      // End with 'q' or EOT (CTRL-D)
+      if ((strlen(inputBuffer) == 1) && ((inputBuffer[0] == 'q') || (inputBuffer[0] == 0x04))) {
+        break;
+      }
+
+      const char delim[2] = " ";
+      char* token = strtok(inputBuffer, delim);
+      char* end;
+      uint8_t command[3];
+      uint8_t numValidTokens = 0;
+      uint8_t error = 0;
+
+      while (token != NULL) {
+        long value = strtol(token, &end, 0);
+        if (value > 0xff) {
+          error = 1;
+          Serial.write("ERROR - values must be bytes!\n");
+          break;
+        }
+        if (numValidTokens >= 3) {
+          break;
+        }
+        if (end != token) {
+          command[numValidTokens] = value;
+          numValidTokens++;
+        }
+        token = strtok(NULL, delim);
+      }
+      if (!error) {
+        if (numValidTokens == 1) {
+          typewriter.sendCommand((wheelwriter::ww_command)command[0]);
+        }
+        if (numValidTokens == 2) {
+          typewriter.sendCommand((wheelwriter::ww_command)command[0], command[1]);
+        }
+        if (numValidTokens == 3) {
+          typewriter.sendCommand((wheelwriter::ww_command)command[0], command[1], command[2]);
+        }
+      }
+    }
+  }
+
+  Serial.write("[END]\n");
+}
+
+void typeFunction() {
+  const uint8_t USE_CARAT_AS_CONTROL = 1;
   uint8_t charSpace = 10;
   uint8_t lineSpace = 16;
-  uint8_t numCharacters = 0;
   uint8_t caratFlag = 0;
+  wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
+  typewriter.setLeftMargin();
+
+  Serial.write("[BEGIN]\n");
+
   while (true) {
     if (Serial.available()) {
       char inByte = Serial.read();
-      // End when receiving EOT (CTRL-D)
+      // End when receiving EOT (CTRL-D) or the string "^D"
       if ((inByte == 0x04) || (caratFlag && ((inByte == 'd') || (inByte == 'D')))) {
         while (Serial.available()) {
           Serial.read();
         }
         break;
       }
-      else if ((inByte == 0x0a) && numCharacters) {
-        typewriter.moveCarriage(numCharacters * charSpace, wheelwriter::CARRIAGE_DIRECTION_LEFT);
-        typewriter.movePlaten(lineSpace);
-        numCharacters = 0;
+      // ANSI escape code - CSI (Control Sequence Introducer) with SGR (Select Graphic Rendition) parameter
+      // ^[ [ <value> m
+      else if ((inByte == 0x1b) || (caratFlag && (inByte == '['))) {
+        String inString = Serial.readStringUntil('m');
+        parseEscape(inString.c_str(), typestyle, lineSpace);
       }
-      else if (inByte == '^') {
+      // New line
+      else if (inByte == 0x0a) {
+        typewriter.carriageReturn();
+        typewriter.lineFeed();
+      }
+      // Carat may be used as a special symbol for control characters (^D, ^[)
+      else if (USE_CARAT_AS_CONTROL && (inByte == '^')) {
         caratFlag = 1;
       }
+      // Print the character
       else {
-        Serial.println(inByte, HEX);
-        typewriter.typeAscii(inByte, charSpace);
-        numCharacters++;
+        Serial.print(inByte);
+        typewriter.typeAscii(inByte, typestyle);
       }
       
       if (caratFlag && (inByte != '^')) {
@@ -205,5 +378,45 @@ void typeFunction() {
       }
     }
   }
+
   Serial.write("[END]\n");
+}
+
+void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, uint8_t& lineSpace) {
+  if (buffer[0] == '[') {
+    char* end;
+    long value = strtol(buffer+1, &end, 10);
+    if (end != buffer+1) {
+      switch (value) {
+        case 0:  // Normal
+          typestyle = wheelwriter::TYPESTYLE_NORMAL;
+          lineSpace = 16;
+          break;
+        case 1:  // Bold
+          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle || (uint8_t)wheelwriter::TYPESTYLE_BOLD);
+          break;
+        case 4:  // Underline
+          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle || (uint8_t)wheelwriter::TYPESTYLE_UNDERLINE);
+          break;
+        case 10: // Single space
+          lineSpace = 16;
+          break;
+        case 11: // 1.5 space
+          lineSpace = 24;
+          break;
+        case 12: // Double space
+          lineSpace = 32;
+          break;
+        case 13: // Triple space
+          lineSpace = 48;
+          break;
+        case 22: // Not bold
+          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle & 0xf0);
+          break;
+        case 24: // Not underlined
+          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle & 0x0f);
+          break;
+      }
+    }
+  }
 }
