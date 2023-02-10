@@ -58,6 +58,7 @@ void loop() {
     else if ((token[0] == 'h') || (strcmp(token, "help") == 0)) {
       Serial.write("Available functions:\n");
       Serial.write("help - print this help text\n");
+      Serial.write("buffer - execute the buffer test\n");
       Serial.write("char - execute the character test\n");
       Serial.write("circle - execute the circle test\n");
       Serial.write("loopback - execute the loopback test\n");
@@ -65,6 +66,33 @@ void loop() {
       Serial.write("raw - send raw commands\n");
       Serial.write("sample - print a type sample\n");
       Serial.write("type - type characters on the typewriter\n");
+    }
+    else if (strcmp(token, "buffer") == 0) {
+      uint16_t numChars = 10;
+      uint8_t charsPerLine = 80;
+      token = strtok(NULL, delim);
+      char* end;
+      int i = 0;
+      while (token != NULL) {
+        long value = strtol(token, &end, 0);
+        if (token != end) {
+          if (i == 0) {
+            numChars = value;
+            i++;
+          }
+          else {
+            charsPerLine = value;
+            break;
+          }
+        }
+        token = strtok(NULL, delim);
+      }
+      Serial.write("[FUNCTION] Buffer Test ");
+      Serial.write("| # Characters: ");
+      Serial.print(numChars);
+      Serial.write(", Characters Per Line: ");
+      Serial.println(charsPerLine);
+      bufferTest(numChars, charsPerLine);
     }
     else if (strcmp(token, "char") == 0) {
       uint8_t typestyle = wheelwriter::TYPESTYLE_NORMAL;
@@ -133,7 +161,7 @@ void loop() {
       Serial.write("| plus: 0x");
       Serial.print(plusPosition, HEX);
       Serial.write(", - underscore: 0x");
-      Serial.print(underscorePosition, HEX);
+      Serial.println(underscorePosition, HEX);
       printwheelSample(plusPosition, underscorePosition);
     }
     else if (strcmp(token, "type") == 0) {
@@ -171,6 +199,25 @@ void loop() {
     // delay(500);
     // typewriter.typeCharacter(0x05, 10);
     // delay(500);
+  }
+}
+
+void bufferTest(uint16_t numChars, uint8_t charsPerLine) {
+  char buffer[] = "123456789.";
+  uint8_t index = 0;
+  uint8_t bufferSize = strlen(buffer);
+  uint16_t charsTyped = 0;
+  typewriter.setLeftMargin();
+
+  while (charsTyped < numChars) {
+    index = index % bufferSize;
+    typewriter.typeAscii(buffer[index]);
+    charsTyped++;
+    index++;
+    if ((charsTyped % charsPerLine) == 0) {
+      typewriter.carriageReturn();
+      typewriter.lineFeed();
+    }
   }
 }
 
