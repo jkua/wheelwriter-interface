@@ -60,6 +60,8 @@ void loop() {
       Serial.write("help - print this help text\n");
       Serial.write("char - execute the character test\n");
       Serial.write("circle - execute the circle test\n");
+      Serial.write("loopback - execute the loopback test\n");
+      Serial.write("query - query typewriter for information\n");
       Serial.write("raw - send raw commands\n");
       Serial.write("sample - print a type sample\n");
       Serial.write("type - type characters on the typewriter\n");
@@ -94,6 +96,14 @@ void loop() {
     else if (strcmp(token, "circle") == 0) {
       Serial.write("[FUNCTION] Circle Test\n");
       circleTest();
+    }
+    else if (strcmp(token, "loopback") == 0) {
+      Serial.write("[FUNCTION] Loopback Test\n");
+      loopbackTest();
+    }
+    else if (strcmp(token, "query") == 0) {
+      Serial.write("[FUNCTION] Query\n");
+      queryFunction();
     }
     else if (strcmp(token, "raw") == 0) {
       Serial.write("[FUNCTION] Command\n");
@@ -179,7 +189,7 @@ void circleTest() {
   // Move to center
   typewriter.moveCarriage(100);
   for (int i = 0; i < strlen(buffer); i++) {
-    typewriter.typeAscii(buffer[i]);
+    typewriter.typeAsciiInPlace(buffer[i]);
     if (i == strlen(buffer) - 1) break;
     typewriter.moveCarriage(dx[i]);
     typewriter.movePlaten(-dy[i]);
@@ -201,6 +211,51 @@ void characterTest(wheelwriter::ww_typestyle style) {
     typewriter.typeAsciiString(buffers[i], style);
     typewriter.carriageReturn();
     typewriter.lineFeed();
+  }
+}
+
+void loopbackTest() {
+  while (true) {
+    Serial.write("\nPress Enter to send query, q to quit...\n");
+
+    while (Serial.available() == 0) {
+      delay(100);
+    }
+    char inByte = Serial.read();
+    if (inByte == 'q') {
+      while (Serial.available()) {
+        Serial.read();
+      }
+      break;
+    }
+    else if (inByte == '\n') {
+      uint32_t value;
+      uint16_t address = 0x121;
+      uint16_t command = wheelwriter::QUERY_MODEL;
+      Serial.write("Send address: 0x");
+      Serial.println(address, HEX);
+      uart.write(address);
+      delayMicroseconds(150);
+      value = uart.read();
+      Serial.write("Received: 0x");
+      Serial.println(value, HEX);
+      delayMicroseconds(150);
+      value = uart.read();
+      Serial.write("Received: 0x");
+      Serial.println(value, HEX);
+      
+      Serial.write("Send command: 0x");
+      Serial.println(command, HEX);
+      uart.write(command);
+      delayMicroseconds(150);
+      value = uart.read();
+      Serial.write("Received: 0x");
+      Serial.println(value, HEX);
+      delayMicroseconds(150);
+      value = uart.read();
+      Serial.write("Received: 0x");
+      Serial.println(value, HEX);
+    }
   }
 }
 
@@ -278,6 +333,12 @@ void printwheelSample(const uint8_t plusPosition, const uint8_t underscorePositi
   typewriter.lineFeed();
 }
 
+void queryFunction() {
+  uint16_t model = typewriter.queryModel();
+  Serial.write("Model: 0x");
+  Serial.println(model, HEX);
+}
+
 void rawCommandFunction() {
   Serial.write("[BEGIN]\n");
 
@@ -337,13 +398,27 @@ void typeFunction() {
   uint8_t charSpace = 10;
   uint8_t lineSpace = 16;
   uint8_t caratFlag = 0;
+  uint8_t bytesAvailable = 0;
+  uint8_t paused = false;
   wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
   typewriter.setLeftMargin();
 
   Serial.write("[BEGIN]\n");
 
   while (true) {
-    if (Serial.available()) {
+    bytesAvailable = Serial.available();
+
+    // // Flow control
+    // if (bytesAvailable > 48) {
+    //   Serial.write(0x13); // XOFF
+    //   paused = true;
+    // }
+    // else if (paused && (bytesAvailable < 16)) {
+    //   Serial.write(0x11); // XON
+    //   paused = false;
+    // }
+
+    if (bytesAvailable) {
       char inByte = Serial.read();
       // End when receiving EOT (CTRL-D) or the string "^D"
       if ((inByte == 0x04) || (caratFlag && ((inByte == 'd') || (inByte == 'D')))) {

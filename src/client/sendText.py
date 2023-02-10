@@ -50,6 +50,5 @@ if __name__=='__main__':
 			for char in textLine:
 				ser.write(char.encode())
 				characterCounter += 1
-				time.sleep(0.6)
 
 	print(f'\n*** Sent {characterCounter} characters ***')

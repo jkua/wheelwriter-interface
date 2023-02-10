@@ -59,12 +59,11 @@ static inline void uart_9bit_rx_program_init(PIO pio, uint sm, uint offset, uint
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
 }
-static inline uint16_t uart_9bit_rx_program_get_word(PIO pio, uint sm) {
-    // 16-bit read from the uppermost byte of the FIFO, as data is left-justified
-    io_rw_16 *rxfifo_shift = (io_rw_16*)&pio->rxf[sm] + 3;
+static inline uint32_t uart_9bit_rx_program_get_word(PIO pio, uint sm) {
+    io_rw_32 *rxfifo_shift = (io_rw_32*)&pio->rxf[sm];
     while (pio_sm_is_rx_fifo_empty(pio, sm))
         tight_loop_contents();
-    return (uint16_t)*rxfifo_shift;
+    return (uint32_t)*rxfifo_shift;
 }
 
 #endif

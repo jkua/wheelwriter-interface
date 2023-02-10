@@ -36,8 +36,10 @@ public:
         uart_9bit_tx_inverted_program_put_buffer(pio_, sm_tx_, buffer, count);
     }
     uint16_t read() {
-        if (!init_) return 65535;
-        return uart_9bit_rx_program_get_word(pio_, sm_rx_);
+        if (!init_) return 0xffffffff;
+        uint32_t fifo = uart_9bit_rx_program_get_word(pio_, sm_rx_);
+        // Bits are coming from the left, so we need to shift right 32-9 bits
+        return fifo >> 23;
     }
 private:
     uint init_;

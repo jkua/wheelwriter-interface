@@ -10,46 +10,93 @@ using namespace wheelwriter;
 
 uint8_t Wheelwriter::sendCommand(ww_command command) {
 	buffer[1] = command;
+	uint16_t response;
+
+	// Send address
 	uart_->write(buffer[0]);
-	delayMicroseconds(300);
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (response != 0) {
+		Serial.write("ERROR: sendCommand(): receive bad ACK to address byte! 0x");
+		Serial.println(response, HEX);
+	}
+
+	// Send command
 	uart_->write(buffer[1]);
-	delayMicroseconds(300);
-	//uart_->read();
-	delay(450);
-	return 0;
+	uart_->read(); // Ignore self-transmission
+	return uart_->read();
 }
 uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data) {
 	buffer[1] = command;
 	buffer[2] = data;
-	// uart_->write(buffer, 3);
-	//uart_->read();
-	uart_->write(buffer[0]);
-	delayMicroseconds(300);
-	uart_->write(buffer[1]);
-	delayMicroseconds(300);
-	uart_->write(buffer[2]);
-	delayMicroseconds(300);
+	uint16_t response;
 
-	delay(450);
-	return 0;
+	// Send address
+	uart_->write(buffer[0]);
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (response != 0) {
+		Serial.write("ERROR: sendCommand(): receive bad ACK to address byte! 0x");
+		Serial.println(response, HEX);
+	}
+
+	// Send command
+	uart_->write(buffer[1]);
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (response != 0) {
+		Serial.write("ERROR: sendCommand(): receive bad ACK to command byte! 0x");
+		Serial.println(response, HEX);
+	}
+
+	// Send data
+	uart_->write(buffer[2]);
+	uart_->read(); // Ignore self-transmission
+	return uart_->read();
 }
 uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data2) {
 	buffer[1] = command;
 	buffer[2] = data1;
 	buffer[3] = data2;
-	// uart_->write(buffer, 4);
+	uint16_t response;
+	
+	// Send address
 	uart_->write(buffer[0]);
-	delayMicroseconds(300);
-	uart_->write(buffer[1]);
-	delayMicroseconds(300);
-	uart_->write(buffer[2]);
-	delayMicroseconds(300);
-	uart_->write(buffer[3]);
-	delayMicroseconds(300);
-	//uart_->read();
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (response != 0) {
+		Serial.write("ERROR: sendCommand(): receive bad ACK to address byte! 0x");
+		Serial.println(response, HEX);
+	}
 
-	delay(450);
-	return 0;
+	// Send command
+	uart_->write(buffer[1]);
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (response != 0) {
+		Serial.write("ERROR: sendCommand(): receive bad ACK to command byte! 0x");
+		Serial.println(response, HEX);
+	}
+
+	// Send data 1
+	uart_->write(buffer[2]);
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (response != 0) {
+		Serial.write("ERROR: sendCommand(): receive bad ACK to data 1 byte! 0x");
+		Serial.println(response, HEX);
+	}
+
+	// Send data 2
+	uart_->write(buffer[3]);
+	uart_->read(); // Ignore self-transmission
+	return uart_->read();
+}
+void Wheelwriter::waitReady() {
+	int count = 0;
+	while (sendCommand(QUERY_STATUS) != 0) {
+		delayMicroseconds(1000);
+	}
 }
 
 char Wheelwriter::ascii2Printwheel(char ascii) {
@@ -73,8 +120,7 @@ void Wheelwriter::setLineSpacing(ww_linespacing spacing) {
 }
 
 ww_model Wheelwriter::queryModel() {
-	sendCommand(QUERY_MODEL);
-	return UNKNOWN_MODEL;
+	return (ww_model)sendCommand(QUERY_MODEL);
 }
 void Wheelwriter::typeAsciiInPlace(char ascii, ww_typestyle style) {
 	typeCharacterInPlace(ascii2Printwheel(ascii), style);
@@ -94,21 +140,21 @@ void Wheelwriter::typeAsciiString(char* string, ww_typestyle style) {
 	typeAsciiString(string, charSpace_, style);
 }
 void Wheelwriter::typeCharacterInPlace(uint8_t wheelPosition, ww_typestyle style) {
-	// sendCommand(QUERY_STATUS);
-	// delayMicroseconds(450);
+	waitReady();
 	sendCommand(TYPE_CHARACTER_NO_ADVANCE, wheelPosition, 0);
 	if ((style & 0xf0) == TYPESTYLE_UNDERLINE) {
+		waitReady();
 		sendCommand(TYPE_CHARACTER_NO_ADVANCE, ascii2Printwheel('_'), 0);	
 	}
 	if ((style & 0x0f) == TYPESTYLE_BOLD) {
 		moveCarriage(1);
+		waitReady();
 		sendCommand(TYPE_CHARACTER_NO_ADVANCE, wheelPosition, 0);
 	}
 }
 void Wheelwriter::typeCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style) {
-	// sendCommand(QUERY_STATUS);
-	// delay(5);
 	if (style == TYPESTYLE_NORMAL) {
+		waitReady();
 		sendCommand(TYPE_CHARACTER_AND_ADVANCE, wheelPosition, advanceUsteps);
 		horizontalMicrospaces_ += advanceUsteps;
 	}
@@ -124,6 +170,7 @@ void Wheelwriter::typeCharacter(uint8_t wheelPosition, ww_typestyle style) {
 	typeCharacter(wheelPosition, charSpace_, style);
 }
 void Wheelwriter::eraseCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style) {
+	waitReady();
 	sendCommand(ERASE_CHARACTER_AND_ADVANCE, wheelPosition, advanceUsteps);
 }
 void Wheelwriter::movePlaten(int8_t usteps) {
@@ -135,6 +182,7 @@ void Wheelwriter::movePlaten(int8_t usteps) {
 }
 void Wheelwriter::movePlaten(uint8_t usteps, ww_platen_direction direction) {
 	usteps = usteps & 0x7f; // 7-bit value
+	waitReady();
 	sendCommand(MOVE_PLATEN, usteps | direction);
 }
 void Wheelwriter::moveCarriage(int16_t usteps) {
@@ -148,6 +196,8 @@ void Wheelwriter::moveCarriage(uint16_t usteps, ww_carriage_direction direction)
 	uint16_t stepsAbs = usteps & 0x07ff; // 11-bit value
 	uint8_t byte1 = (stepsAbs >> 8) | direction;
 	uint8_t byte2 = stepsAbs & 0x00ff;
+
+	waitReady();
 	sendCommand(MOVE_CARRIAGE, byte1, byte2);
 	if (direction == CARRIAGE_DIRECTION_RIGHT) {
 		horizontalMicrospaces_ += usteps;
@@ -184,6 +234,7 @@ void Wheelwriter::lineFeed(ww_platen_direction direction) {
 	movePlaten(usteps, direction);
 }
 void Wheelwriter::spinWheel() {
+	waitReady();
 	sendCommand(SPIN_WHEEL);
 }
 ww_printwheel Wheelwriter::queryPrintwheel() {
