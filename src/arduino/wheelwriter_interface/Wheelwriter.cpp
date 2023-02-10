@@ -248,10 +248,11 @@ ww_status Wheelwriter::queryStatus() {
 	sendCommand(QUERY_STATUS);
 	return NO_STATUS;
 }
-ww_operation Wheelwriter::queryOperation() {
-	sendCommand(QUERY_OPERATION);
-	return NO_OPERATION;
-}
+// This isn't a query - takes a single byte argument
+// ww_operation Wheelwriter::queryOperation() {
+// 	sendCommand(QUERY_OPERATION);
+// 	return NO_OPERATION;
+// }
 void Wheelwriter::sendCode(ww_code code) {
 	sendCommand(SEND_CODE, code);
 }

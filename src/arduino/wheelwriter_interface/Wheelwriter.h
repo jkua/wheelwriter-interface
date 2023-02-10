@@ -181,7 +181,7 @@ public:
 	ww_printwheel queryPrintwheel();
 	void setRepeatMode(ww_repeat_mode repeatMode);
 	ww_status queryStatus();
-	ww_operation queryOperation();
+	// ww_operation queryOperation();
 	void sendCode(ww_code code);
 
 	char ascii2Printwheel(char ascii);

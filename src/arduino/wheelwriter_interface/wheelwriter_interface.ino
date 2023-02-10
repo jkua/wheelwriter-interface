@@ -337,6 +337,15 @@ void queryFunction() {
   uint16_t model = typewriter.queryModel();
   Serial.write("Model: 0x");
   Serial.println(model, HEX);
+  uint16_t wheel = typewriter.queryPrintwheel();
+  Serial.write("Wheel: 0x");
+  Serial.println(wheel, HEX);
+  uint16_t status = typewriter.queryStatus();
+  Serial.write("Status: 0x");
+  Serial.println(status, HEX);
+  // uint16_t operation = typewriter.queryOperation();
+  // Serial.write("Operation: 0x");
+  // Serial.println(operation, HEX);
 }
 
 void rawCommandFunction() {
