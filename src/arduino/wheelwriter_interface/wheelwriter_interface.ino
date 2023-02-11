@@ -461,6 +461,7 @@ void typeFunction() {
   uint8_t bytesAvailable = 0;
   uint8_t paused = false;
   wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
+  typewriter.readFlush();
   typewriter.setLeftMargin();
 
   Serial.write("[BEGIN]\n");
@@ -468,15 +469,15 @@ void typeFunction() {
   while (true) {
     bytesAvailable = Serial.available();
 
-    // // Flow control
-    // if (bytesAvailable > 48) {
-    //   Serial.write(0x13); // XOFF
-    //   paused = true;
-    // }
-    // else if (paused && (bytesAvailable < 16)) {
-    //   Serial.write(0x11); // XON
-    //   paused = false;
-    // }
+    // Flow control
+    if (bytesAvailable > 48) {
+      Serial.write(0x13); // XOFF
+      paused = true;
+    }
+    else if (paused && (bytesAvailable < 16)) {
+      Serial.write(0x11); // XON
+      paused = false;
+    }
 
     if (bytesAvailable) {
       char inByte = Serial.read();
@@ -492,6 +493,7 @@ void typeFunction() {
       else if ((inByte == 0x1b) || (caratFlag && (inByte == '['))) {
         String inString = Serial.readStringUntil('m');
         parseEscape(inString.c_str(), typestyle, lineSpace);
+        typewriter.setLineSpace(lineSpace);
       }
       // New line
       else if (inByte == 0x0a) {
@@ -504,7 +506,7 @@ void typeFunction() {
       }
       // Print the character
       else {
-        Serial.print(inByte);
+        // Serial.print(inByte);
         typewriter.typeAscii(inByte, typestyle);
       }
       
@@ -514,7 +516,7 @@ void typeFunction() {
     }
   }
 
-  Serial.write("[END]\n");
+  Serial.write("\n[END]\n");
 }
 
 void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, uint8_t& lineSpace) {
@@ -528,10 +530,10 @@ void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, uint8
           lineSpace = 16;
           break;
         case 1:  // Bold
-          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle || (uint8_t)wheelwriter::TYPESTYLE_BOLD);
+          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle | (uint8_t)wheelwriter::TYPESTYLE_BOLD);
           break;
         case 4:  // Underline
-          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle || (uint8_t)wheelwriter::TYPESTYLE_UNDERLINE);
+          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle | (uint8_t)wheelwriter::TYPESTYLE_UNDERLINE);
           break;
         case 10: // Single space
           lineSpace = 16;

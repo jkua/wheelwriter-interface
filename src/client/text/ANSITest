@@ -1,0 +1,19 @@
+Normal
+^[[1mBold^[[0m
+^[[4mUnderline^[[0m
+^[[1m^[[4mBold+Underline
+^[[22mDrop bold
+^[[24mDrop underline
+
+^[[11m1.5 line spacing
+1.5 line spacing
+1.5 line spacing^[[10m
+
+^[[12m2 line spacing
+2 line spacing
+2 line spacing^[[10m
+
+
+^[[13m3 line spacing
+3 line spacing
+3 line spacing^[[10m

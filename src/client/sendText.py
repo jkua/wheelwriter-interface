@@ -9,6 +9,7 @@ if __name__=='__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--device', '-d', required=True, help='Serial port to connect to')
 	parser.add_argument('file', help='Text file to send')
+	parser.add_argument('--endlines', '-e', type=int, help='Additional carriage returns at the end')
 	args = parser.parse_args()
 
 	infile = open(args.file, 'rt')
@@ -16,7 +17,7 @@ if __name__=='__main__':
 
 	retryCounter = 0
 	characterCounter = 0
-	with serial.Serial(args.device, 115200) as ser:
+	with serial.Serial(args.device, 115200, xonxoff=True) as ser:
 		while True:
 			print('\n*** Sending "\\n" ***')
 			ser.write('\n'.encode());
@@ -49,6 +50,16 @@ if __name__=='__main__':
 		for textLine in textLines:
 			for char in textLine:
 				ser.write(char.encode())
+				time.sleep(0.05)
 				characterCounter += 1
+
+		for i in range(args.endlines):
+			ser.write('\n'.encode())
+			time.sleep(0.05)
+
+		print('\n*** Exiting type mode ***')
+		ser.write(b'\x04')
+		line = ser.readline().decode().strip()
+		print(line)
 
 	print(f'\n*** Sent {characterCounter} characters ***')

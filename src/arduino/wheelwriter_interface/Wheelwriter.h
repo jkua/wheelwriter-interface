@@ -158,7 +158,8 @@ public:
 	uint8_t sendCommand(ww_command command, uint8_t data);
 	uint8_t sendCommand(ww_command command, uint8_t data1, uint8_t data2);
 	void waitReady();
-	
+	void readFlush();
+
 	ww_model queryModel();
 	ww_printwheel reset();
 	void typeAsciiInPlace(char ascii, ww_typestyle style=TYPESTYLE_NORMAL);

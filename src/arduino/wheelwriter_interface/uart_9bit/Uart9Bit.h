@@ -41,6 +41,9 @@ public:
         // Bits are coming from the left, so we need to shift right 32-9 bits
         return fifo >> 23;
     }
+    bool available() {
+        return !pio_sm_is_rx_fifo_empty(pio_, sm_rx_);
+    }
 private:
     uint init_;
     PIO pio_;

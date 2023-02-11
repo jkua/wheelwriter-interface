@@ -100,6 +100,15 @@ void Wheelwriter::waitReady() {
 		delayMicroseconds(1000);
 	}
 }
+void Wheelwriter::readFlush() {
+	uint8_t data;
+	Serial.write("Wheelwriter::readFlush()\n");
+	while (uart_->available()) {
+		uart_->read();
+		Serial.write("    0x");
+		Serial.println(data, HEX);
+	}
+}
 
 char Wheelwriter::ascii2Printwheel(char ascii) {
 	// TODO: Add other languages
