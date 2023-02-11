@@ -94,7 +94,9 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data
 }
 void Wheelwriter::waitReady() {
 	int count = 0;
-	while (sendCommand(QUERY_STATUS) != 0) {
+	uint8_t status;
+	while (status = queryStatus() != 0) {
+		Serial.println(status, HEX);
 		delayMicroseconds(1000);
 	}
 }
@@ -140,21 +142,20 @@ void Wheelwriter::typeAsciiString(char* string, ww_typestyle style) {
 	typeAsciiString(string, charSpace_, style);
 }
 void Wheelwriter::typeCharacterInPlace(uint8_t wheelPosition, ww_typestyle style) {
-	waitReady();
 	sendCommand(TYPE_CHARACTER_NO_ADVANCE, wheelPosition, 0);
 	if ((style & 0xf0) == TYPESTYLE_UNDERLINE) {
-		waitReady();
+
 		sendCommand(TYPE_CHARACTER_NO_ADVANCE, ascii2Printwheel('_'), 0);	
 	}
 	if ((style & 0x0f) == TYPESTYLE_BOLD) {
 		moveCarriage(1);
-		waitReady();
+
 		sendCommand(TYPE_CHARACTER_NO_ADVANCE, wheelPosition, 0);
 	}
 }
 void Wheelwriter::typeCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style) {
 	if (style == TYPESTYLE_NORMAL) {
-		waitReady();
+
 		sendCommand(TYPE_CHARACTER_AND_ADVANCE, wheelPosition, advanceUsteps);
 		horizontalMicrospaces_ += advanceUsteps;
 	}
@@ -170,7 +171,6 @@ void Wheelwriter::typeCharacter(uint8_t wheelPosition, ww_typestyle style) {
 	typeCharacter(wheelPosition, charSpace_, style);
 }
 void Wheelwriter::eraseCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style) {
-	waitReady();
 	sendCommand(ERASE_CHARACTER_AND_ADVANCE, wheelPosition, advanceUsteps);
 }
 void Wheelwriter::movePlaten(int8_t usteps) {
@@ -182,7 +182,6 @@ void Wheelwriter::movePlaten(int8_t usteps) {
 }
 void Wheelwriter::movePlaten(uint8_t usteps, ww_platen_direction direction) {
 	usteps = usteps & 0x7f; // 7-bit value
-	waitReady();
 	sendCommand(MOVE_PLATEN, usteps | direction);
 }
 void Wheelwriter::moveCarriage(int16_t usteps) {
@@ -197,7 +196,6 @@ void Wheelwriter::moveCarriage(uint16_t usteps, ww_carriage_direction direction)
 	uint8_t byte1 = (stepsAbs >> 8) | direction;
 	uint8_t byte2 = stepsAbs & 0x00ff;
 
-	waitReady();
 	sendCommand(MOVE_CARRIAGE, byte1, byte2);
 	if (direction == CARRIAGE_DIRECTION_RIGHT) {
 		horizontalMicrospaces_ += usteps;
@@ -234,19 +232,16 @@ void Wheelwriter::lineFeed(ww_platen_direction direction) {
 	movePlaten(usteps, direction);
 }
 void Wheelwriter::spinWheel() {
-	waitReady();
 	sendCommand(SPIN_WHEEL);
 }
 ww_printwheel Wheelwriter::queryPrintwheel() {
-	sendCommand(QUERY_WHEEL);
-	return NO_WHEEL;
+	return (ww_printwheel)sendCommand(QUERY_WHEEL);
 }
 void Wheelwriter::setRepeatMode(ww_repeat_mode repeatMode) {
 	sendCommand(SET_REPEAT_MODE, repeatMode);
 }
 ww_status Wheelwriter::queryStatus() {
-	sendCommand(QUERY_STATUS);
-	return NO_STATUS;
+	return (ww_status)sendCommand(QUERY_STATUS);
 }
 // This isn't a query - takes a single byte argument
 // ww_operation Wheelwriter::queryOperation() {

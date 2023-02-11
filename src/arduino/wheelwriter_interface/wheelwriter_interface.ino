@@ -219,6 +219,10 @@ void bufferTest(uint16_t numChars, uint8_t charsPerLine) {
       typewriter.lineFeed();
     }
   }
+  if (charsTyped % charsPerLine) {
+    typewriter.carriageReturn();
+    typewriter.lineFeed();
+  }
 }
 
 void circleTest() {
