@@ -61,6 +61,7 @@ void loop() {
       Serial.write("buffer - execute the buffer test\n");
       Serial.write("char - execute the character test\n");
       Serial.write("circle - execute the circle test\n");
+      Serial.write("keyboard - read input from the keyboard\n");
       Serial.write("loopback - execute the loopback test\n");
       Serial.write("query - query typewriter for information\n");
       Serial.write("raw - send raw commands\n");
@@ -125,6 +126,31 @@ void loop() {
     else if (strcmp(token, "circle") == 0) {
       Serial.write("[FUNCTION] Circle Test\n");
       circleTest();
+    }
+    else if (strcmp(token, "keyboard") == 0) {
+      uint8_t verbose = 0;
+      token = strtok(NULL, delim);
+      char* end;
+      while (token != NULL) {
+        if (strlen(token) >= 0) {
+          if ((token[0] == 'v') && (verbose == 0)) {
+            verbose = 1;
+          }
+          if (strcmp(token, "vv") == 0) {
+            verbose = 2;
+          }
+        }
+        token = strtok(NULL, delim);
+      }
+      Serial.write("[FUNCTION] Keyboard Input");
+      if (verbose == 0) {
+        Serial.write('\n');
+      }
+      else {
+        Serial.write(" - verbose: ");
+        Serial.println(verbose);
+      }
+      keyboardFunction(verbose);
     }
     else if (strcmp(token, "loopback") == 0) {
       Serial.write("[FUNCTION] Loopback Test\n");
@@ -270,6 +296,43 @@ void characterTest(wheelwriter::ww_typestyle style) {
     typewriter.carriageReturn();
     typewriter.lineFeed();
   }
+}
+
+void keyboardFunction(uint8_t verbose) {
+  Serial.write("[BEGIN]\n");
+  while (true) {
+    if (Serial.available()) {
+      String inString = Serial.readStringUntil('\n');
+      inString.toLowerCase();
+      inString.toCharArray(inputBuffer, 64);
+
+      // End with 'q' or EOT (CTRL-D)
+      if ((strlen(inputBuffer) == 1) && ((inputBuffer[0] == 'q') || (inputBuffer[0] == 0x04))) {
+        break;
+      }
+    }
+    char ascii;
+    uint8_t blocking = 0;
+    wheelwriter::ww_keypress_type keypressType = typewriter.readKeypress(ascii, blocking, verbose);
+    if (keypressType == wheelwriter::NO_COMMAND) {
+      continue;
+    }
+    if (keypressType != wheelwriter::NO_KEYPRESS) {
+      if (verbose) {
+        Serial.write("Keypress: 0x");
+        Serial.println(ascii, HEX);
+      }
+      else {
+        Serial.write(ascii);
+      }
+    }
+    else {
+      if (verbose == 2) {
+        Serial.write("NO_KEYPRESS\n");
+      }
+    }
+  }
+  Serial.write("\n[END]\n");
 }
 
 void loopbackTest() {
@@ -475,6 +538,7 @@ void readFunction() {
     typewriter.readFlush();
     typewriter.readCommand();
   }
+  
   Serial.write("\n[END]\n");
 }
 

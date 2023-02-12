@@ -9,11 +9,11 @@
 using namespace wheelwriter;
 
 uint8_t Wheelwriter::sendCommand(ww_command command) {
-	buffer[1] = command;
+	bufferOut_[1] = command;
 	uint16_t response;
 
 	// Send address
-	uart_->write(buffer[0]);
+	uart_->write(bufferOut_[0]);
 	uart_->read(); // Ignore self-transmission
 	response = uart_->read();
 	if (response != 0) {
@@ -22,17 +22,17 @@ uint8_t Wheelwriter::sendCommand(ww_command command) {
 	}
 
 	// Send command
-	uart_->write(buffer[1]);
+	uart_->write(bufferOut_[1]);
 	uart_->read(); // Ignore self-transmission
 	return uart_->read();
 }
 uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data) {
-	buffer[1] = command;
-	buffer[2] = data;
+	bufferOut_[1] = command;
+	bufferOut_[2] = data;
 	uint16_t response;
 
 	// Send address
-	uart_->write(buffer[0]);
+	uart_->write(bufferOut_[0]);
 	uart_->read(); // Ignore self-transmission
 	response = uart_->read();
 	if (response != 0) {
@@ -41,7 +41,7 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data) {
 	}
 
 	// Send command
-	uart_->write(buffer[1]);
+	uart_->write(bufferOut_[1]);
 	uart_->read(); // Ignore self-transmission
 	response = uart_->read();
 	if (response != 0) {
@@ -50,18 +50,18 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data) {
 	}
 
 	// Send data
-	uart_->write(buffer[2]);
+	uart_->write(bufferOut_[2]);
 	uart_->read(); // Ignore self-transmission
 	return uart_->read();
 }
 uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data2) {
-	buffer[1] = command;
-	buffer[2] = data1;
-	buffer[3] = data2;
+	bufferOut_[1] = command;
+	bufferOut_[2] = data1;
+	bufferOut_[3] = data2;
 	uint16_t response;
 	
 	// Send address
-	uart_->write(buffer[0]);
+	uart_->write(bufferOut_[0]);
 	uart_->read(); // Ignore self-transmission
 	response = uart_->read();
 	if (response != 0) {
@@ -70,7 +70,7 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data
 	}
 
 	// Send command
-	uart_->write(buffer[1]);
+	uart_->write(bufferOut_[1]);
 	uart_->read(); // Ignore self-transmission
 	response = uart_->read();
 	if (response != 0) {
@@ -79,7 +79,7 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data
 	}
 
 	// Send data 1
-	uart_->write(buffer[2]);
+	uart_->write(bufferOut_[2]);
 	uart_->read(); // Ignore self-transmission
 	response = uart_->read();
 	if (response != 0) {
@@ -88,92 +88,162 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data
 	}
 
 	// Send data 2
-	uart_->write(buffer[3]);
+	uart_->write(bufferOut_[3]);
 	uart_->read(); // Ignore self-transmission
 	return uart_->read();
 }
-void Wheelwriter::readCommand() {
-	uint16_t buffer[4]; // Address, command, data1, data2
+uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
 	uint16_t response;
 
 	// Address
-	buffer[0] = uart_->read();
-	if (buffer[0] != 0x121) {
-		Serial.write("\nERROR: readCommand(): expected address byte = 0x121! Got 0x");
-		Serial.println(buffer[0], HEX);
-		return;
+	if ((blocking == 0) && (!uart_->available())) {
+		return 0;
 	}
-	Serial.write("Address: 0x");
-	Serial.print(buffer[0], HEX);
+	bufferIn_[0] = uart_->read();
+	
+	if (bufferIn_[0] != 0x121) {
+		if (verbose == 2) {
+			Serial.write("\nERROR: readCommand(): expected address byte = 0x121! Got 0x");
+			Serial.println(bufferIn_[0], HEX);
+		}
+		return 0;
+	}
+	if (verbose) {
+		Serial.write("Address: 0x");
+		Serial.print(bufferIn_[0], HEX);
+	}
 
 	// Address ACK
 	response = uart_->read();
 	if (response != 0) {
-		Serial.write("\nERROR: readCommand(): expected address ACK = 0! Got 0x");
-		Serial.println(response, HEX);
-		return;
+		if (verbose == 2) {
+			Serial.write("\nERROR: readCommand(): expected address ACK = 0! Got 0x");
+			Serial.println(response, HEX);
+		}
+		return 0;
 	}
 
 	// Command
-	buffer[1] = uart_->read();
-	if (buffer[1] > 0xe) {
-		Serial.write("\nERROR: readCommand(): expected command < 0x0f! Got 0x");
-		Serial.println(response, HEX);
-		return;
+	bufferIn_[1] = uart_->read();
+	if (bufferIn_[1] > 0xe) {
+		if (verbose == 2) {
+			Serial.write("\nERROR: readCommand(): expected command < 0x0f! Got 0x");
+			Serial.println(response, HEX);
+		}
+		return 0;
 	}
-	Serial.write(", Command: 0x");
-	Serial.print(buffer[1], HEX);
+	if (verbose) {
+		Serial.write(", Command: 0x");
+		Serial.print(bufferIn_[1], HEX);
+	}
 
-	uint8_t commandLength = ww_command_length[buffer[1]];
+	uint8_t commandLength = ww_command_length[bufferIn_[1]];
 
 	// Command ACK
 	response = uart_->read();
 	if (commandLength == 1) {
-		Serial.write(", Response: 0x");
-		Serial.println(response, HEX);
-		return;
+		if (verbose) {
+			Serial.write(", Response: 0x");
+			Serial.println(response, HEX);
+		}
+		return commandLength;
 	}
 	if ((commandLength > 1) && (response != 0)) {
-		Serial.write("\nERROR: readCommand(): expected command ACK = 0! Got 0x");
-		Serial.println(response, HEX);
-		return;	
+		if (verbose == 2) {
+			Serial.write("\nERROR: readCommand(): expected command ACK = 0! Got 0x");
+			Serial.println(response, HEX);
+		}
+		return 0;	
 	}
 
 	// Data1
-	buffer[2] = uart_->read();
-	Serial.write(", Data1: 0x");
-	Serial.print(buffer[2], HEX);
+	bufferIn_[2] = uart_->read();
+	if (verbose) {
+		Serial.write(", Data1: 0x");
+		Serial.print(bufferIn_[2], HEX);
+	}
 
 	// Data1 ACK
 	response = uart_->read();
 	if (commandLength == 2) {
-		Serial.write(", Response: 0x");
-		Serial.println(response, HEX);
-		return;
+		if (verbose) {
+			Serial.write(", Response: 0x");
+			Serial.println(response, HEX);
+		}
+		return commandLength;
 	}
 	if ((commandLength > 2) && (response != 0)) {
-		Serial.write("\nERROR: readCommand(): expected data1 ACK = 0! Got 0x");
-		Serial.println(response, HEX);
-		return;	
+		if (verbose == 2) {
+			Serial.write("\nERROR: readCommand(): expected data1 ACK = 0! Got 0x");
+			Serial.println(response, HEX);
+		}
+		return 0;	
 	}
 
 	// Data2
-	buffer[3] = uart_->read();
-	Serial.write(", Data2: 0x");
-	Serial.print(buffer[3], HEX);
+	bufferIn_[3] = uart_->read();
+	if (verbose) {
+		Serial.write(", Data2: 0x");
+		Serial.print(bufferIn_[3], HEX);
+	}
 
 	// Data2 ACK
 	response = uart_->read();
 	if (commandLength == 3) {
-		Serial.write(", Response: 0x");
-		Serial.println(response, HEX);
-		return;
+		if (verbose) {
+			Serial.write(", Response: 0x");
+			Serial.println(response, HEX);
+		}
+		return commandLength;
 	}
 	if ((commandLength > 3) && (response != 0)) {
-		Serial.write("\nERROR: readCommand(): expected data2 ACK = 0! Got 0x");
-		Serial.println(response, HEX);
-		return;	
+		if (verbose == 2) {
+			Serial.write("\nERROR: readCommand(): expected data2 ACK = 0! Got 0x");
+			Serial.println(response, HEX);
+		}
+		return 0;	
 	}
+}
+ww_keypress_type Wheelwriter::readKeypress(char& ascii, uint8_t blocking, uint8_t verbose) {
+	uint8_t commandLength = readCommand(blocking, verbose);
+	ww_keypress_type keypressType;
+	ww_platen_direction platenDir;
+	ww_carriage_direction carriageDir;
+
+	if (commandLength > 0) {
+		switch (bufferIn_[1]) {
+			case TYPE_CHARACTER_AND_ADVANCE:
+				ascii = usPrintwheel2AsciiTable[bufferIn_[2]];
+				keypressType = CHARACTER_KEYPRESS;
+				break;
+			case MOVE_PLATEN:
+				platenDir = (ww_platen_direction)(bufferIn_[2] & 0x80);
+				if (platenDir == PLATEN_DIRECTION_UP) {
+					ascii = '\n';
+					keypressType = RETURN_KEYPRESS;
+				}
+				else {
+					keypressType = NO_KEYPRESS;
+				}
+				break;
+			case MOVE_CARRIAGE:
+				carriageDir = (ww_carriage_direction)(bufferIn_[2] & 0x80);
+				keypressType = SPACE_KEYPRESS;
+				if (carriageDir == CARRIAGE_DIRECTION_RIGHT) {
+					ascii = ' ';
+				}
+				else {
+					ascii = 0x08;
+				}
+				break;
+			default:
+				keypressType = NO_KEYPRESS;
+		}
+	}
+	else {
+		keypressType = NO_COMMAND;
+	}
+	return keypressType;
 }
 void Wheelwriter::waitReady() {
 	int count = 0;
