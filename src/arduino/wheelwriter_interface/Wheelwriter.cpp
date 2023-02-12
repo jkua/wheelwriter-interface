@@ -92,6 +92,89 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data
 	uart_->read(); // Ignore self-transmission
 	return uart_->read();
 }
+void Wheelwriter::readCommand() {
+	uint16_t buffer[4]; // Address, command, data1, data2
+	uint16_t response;
+
+	// Address
+	buffer[0] = uart_->read();
+	if (buffer[0] != 0x121) {
+		Serial.write("\nERROR: readCommand(): expected address byte = 0x121! Got 0x");
+		Serial.println(buffer[0], HEX);
+		return;
+	}
+	Serial.write("Address: 0x");
+	Serial.print(buffer[0], HEX);
+
+	// Address ACK
+	response = uart_->read();
+	if (response != 0) {
+		Serial.write("\nERROR: readCommand(): expected address ACK = 0! Got 0x");
+		Serial.println(response, HEX);
+		return;
+	}
+
+	// Command
+	buffer[1] = uart_->read();
+	if (buffer[1] > 0xe) {
+		Serial.write("\nERROR: readCommand(): expected command < 0x0f! Got 0x");
+		Serial.println(response, HEX);
+		return;
+	}
+	Serial.write(", Command: 0x");
+	Serial.print(buffer[1], HEX);
+
+	uint8_t commandLength = ww_command_length[buffer[1]];
+
+	// Command ACK
+	response = uart_->read();
+	if (commandLength == 1) {
+		Serial.write(", Response: 0x");
+		Serial.println(response, HEX);
+		return;
+	}
+	if ((commandLength > 1) && (response != 0)) {
+		Serial.write("\nERROR: readCommand(): expected command ACK = 0! Got 0x");
+		Serial.println(response, HEX);
+		return;	
+	}
+
+	// Data1
+	buffer[2] = uart_->read();
+	Serial.write(", Data1: 0x");
+	Serial.print(buffer[2], HEX);
+
+	// Data1 ACK
+	response = uart_->read();
+	if (commandLength == 2) {
+		Serial.write(", Response: 0x");
+		Serial.println(response, HEX);
+		return;
+	}
+	if ((commandLength > 2) && (response != 0)) {
+		Serial.write("\nERROR: readCommand(): expected data1 ACK = 0! Got 0x");
+		Serial.println(response, HEX);
+		return;	
+	}
+
+	// Data2
+	buffer[3] = uart_->read();
+	Serial.write(", Data2: 0x");
+	Serial.print(buffer[3], HEX);
+
+	// Data2 ACK
+	response = uart_->read();
+	if (commandLength == 3) {
+		Serial.write(", Response: 0x");
+		Serial.println(response, HEX);
+		return;
+	}
+	if ((commandLength > 3) && (response != 0)) {
+		Serial.write("\nERROR: readCommand(): expected data2 ACK = 0! Got 0x");
+		Serial.println(response, HEX);
+		return;	
+	}
+}
 void Wheelwriter::waitReady() {
 	int count = 0;
 	uint8_t status;
@@ -126,12 +209,55 @@ void Wheelwriter::setCharSpace(uint16_t usteps) {
 void Wheelwriter::setLineSpace(uint8_t usteps) {
 	lineSpace_ = usteps;
 }
+void Wheelwriter::setLineSpaceSingle(uint8_t usteps) {
+	lineSpaceSingle_ = usteps;
+}
 void Wheelwriter::setLineSpacing(ww_linespacing spacing) {
 	lineSpacing_ = spacing;
+	updateLineSpace();
 }
-
+void Wheelwriter::updateLineSpace() {
+	switch (lineSpacing_) {
+		case LINESPACING_ONE:
+			lineSpace_ = lineSpaceSingle_;
+			break;
+		case LINESPACING_ONE_POINT_FIVE:
+			lineSpace_ = (uint16_t)lineSpaceSingle_ * 15 / 10;
+			break;
+		case LINESPACING_TWO:
+			lineSpace_ = lineSpaceSingle_ * 2;
+			break;
+		case LINESPACING_THREE:
+			lineSpace_ = lineSpaceSingle_ * 3;
+			break;
+	}
+}
+void Wheelwriter::setSpaceForWheel(ww_printwheel wheel) {
+	switch (wheel) {
+		case PROPORTIONAL:
+			break;
+		case CPI_15:
+			break;
+		case CPI_12:
+		case NO_WHEEL:
+			setLineSpaceSingle(16);
+			updateLineSpace();
+			setCharSpace(10);
+			break;
+		case CPI_10:
+			setLineSpaceSingle(16);
+			updateLineSpace();
+			setCharSpace(12);
+			break;
+	}
+}
+void Wheelwriter::setSpaceForWheel() {
+	wheel_ = queryPrintwheel();
+	setSpaceForWheel(wheel_);
+}
 ww_model Wheelwriter::queryModel() {
-	return (ww_model)sendCommand(QUERY_MODEL);
+	model_ = (ww_model)sendCommand(QUERY_MODEL);
+	return model_;
 }
 void Wheelwriter::typeAsciiInPlace(char ascii, ww_typestyle style) {
 	typeCharacterInPlace(ascii2Printwheel(ascii), style);

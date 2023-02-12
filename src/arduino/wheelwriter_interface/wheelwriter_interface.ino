@@ -64,6 +64,7 @@ void loop() {
       Serial.write("loopback - execute the loopback test\n");
       Serial.write("query - query typewriter for information\n");
       Serial.write("raw - send raw commands\n");
+      Serial.write("read - read bus commands\n");
       Serial.write("sample - print a type sample\n");
       Serial.write("type - type characters on the typewriter\n");
     }
@@ -137,6 +138,10 @@ void loop() {
       Serial.write("[FUNCTION] Command\n");
       rawCommandFunction();
     }
+    else if (strcmp(token, "read") == 0) {
+      Serial.write("[FUNCTION] Read Bus\n");
+      readFunction();
+    }
     else if (strcmp(token, "sample") == 0) {
       uint8_t plusPosition = 0x3b;
       uint8_t underscorePosition = 0x4f;
@@ -207,6 +212,7 @@ void bufferTest(uint16_t numChars, uint8_t charsPerLine) {
   uint8_t index = 0;
   uint8_t bufferSize = strlen(buffer);
   uint16_t charsTyped = 0;
+  typewriter.setSpaceForWheel();
   typewriter.setLeftMargin();
 
   while (charsTyped < numChars) {
@@ -256,6 +262,7 @@ void characterTest(wheelwriter::ww_typestyle style) {
   char buffer3[] = "1234567890-=!@#$%\xa2&*()_+";
   char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
   char* buffers[4] = {buffer1, buffer2, buffer3, buffer4};
+  typewriter.setSpaceForWheel();
   typewriter.setLeftMargin();
 
   for (int i = 0; i < 4; i++) {
@@ -314,9 +321,8 @@ void printwheelSample(const uint8_t plusPosition, const uint8_t underscorePositi
   // A printwheel has 96 (0x60) characters
   // This prints in a pair 16 x 6 arrays (regular and bold) with a border of alignment marks
 
-  // TODO: Read printwheel pitch at set charSpace and lineSpace appropriately
-
   wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
+  typewriter.setSpaceForWheel();
   typewriter.setLeftMargin();
 
   // Row 0
@@ -453,15 +459,39 @@ void rawCommandFunction() {
   Serial.write("[END]\n");
 }
 
+void readFunction() {
+  Serial.write("[BEGIN]\n");
+  while (true) {
+    if (Serial.available()) {
+      String inString = Serial.readStringUntil('\n');
+      inString.toLowerCase();
+      inString.toCharArray(inputBuffer, 64);
+
+      // End with 'q' or EOT (CTRL-D)
+      if ((strlen(inputBuffer) == 1) && ((inputBuffer[0] == 'q') || (inputBuffer[0] == 0x04))) {
+        break;
+      }
+    }
+    typewriter.readFlush();
+    typewriter.readCommand();
+  }
+  Serial.write("\n[END]\n");
+}
+
 void typeFunction() {
   const uint8_t USE_CARAT_AS_CONTROL = 1;
-  uint8_t charSpace = 10;
-  uint8_t lineSpace = 16;
+  wheelwriter::ww_linespacing lineSpacing;
   uint8_t caratFlag = 0;
   uint8_t bytesAvailable = 0;
   uint8_t paused = false;
   wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
+
+  while (Serial.available()) {
+    Serial.read();
+  }
+
   typewriter.readFlush();
+  typewriter.setSpaceForWheel();
   typewriter.setLeftMargin();
 
   Serial.write("[BEGIN]\n");
@@ -492,8 +522,8 @@ void typeFunction() {
       // ^[ [ <value> m
       else if ((inByte == 0x1b) || (caratFlag && (inByte == '['))) {
         String inString = Serial.readStringUntil('m');
-        parseEscape(inString.c_str(), typestyle, lineSpace);
-        typewriter.setLineSpace(lineSpace);
+        parseEscape(inString.c_str(), typestyle, lineSpacing);
+        typewriter.setLineSpacing(lineSpacing);
       }
       // New line
       else if (inByte == 0x0a) {
@@ -519,7 +549,7 @@ void typeFunction() {
   Serial.write("\n[END]\n");
 }
 
-void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, uint8_t& lineSpace) {
+void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, wheelwriter::ww_linespacing& lineSpacing) {
   if (buffer[0] == '[') {
     char* end;
     long value = strtol(buffer+1, &end, 10);
@@ -527,7 +557,7 @@ void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, uint8
       switch (value) {
         case 0:  // Normal
           typestyle = wheelwriter::TYPESTYLE_NORMAL;
-          lineSpace = 16;
+          lineSpacing = wheelwriter::LINESPACING_ONE;
           break;
         case 1:  // Bold
           typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle | (uint8_t)wheelwriter::TYPESTYLE_BOLD);
@@ -536,16 +566,16 @@ void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, uint8
           typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle | (uint8_t)wheelwriter::TYPESTYLE_UNDERLINE);
           break;
         case 10: // Single space
-          lineSpace = 16;
+          lineSpacing = wheelwriter::LINESPACING_ONE;
           break;
         case 11: // 1.5 space
-          lineSpace = 24;
+          lineSpacing = wheelwriter::LINESPACING_ONE_POINT_FIVE;
           break;
         case 12: // Double space
-          lineSpace = 32;
+          lineSpacing = wheelwriter::LINESPACING_TWO;
           break;
         case 13: // Triple space
-          lineSpace = 48;
+          lineSpacing = wheelwriter::LINESPACING_THREE;
           break;
         case 22: // Not bold
           typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle & 0xf0);

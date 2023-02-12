@@ -34,6 +34,16 @@ enum ww_command {
 	SEND_CODE = 0x0e,
 };
 
+// Index is command value
+// 0: Unknown command
+// 1: Just the command is sent
+// 2: Command + Data 1
+// 3: Command + Data 2
+static const uint8_t ww_command_length[16] = {1, 1, 3, 3, 
+                                 		    3, 2, 3, 1, 
+                                 		    1, 2, 2, 1,
+                                 		    2, 2, 2, 0};
+
 enum ww_platen_direction {
 	PLATEN_DIRECTION_DOWN = 0x00,
 	PLATEN_DIRECTION_UP = 0x80
@@ -147,6 +157,8 @@ public:
 	}
 	void init(Uart9Bit* uart, uint16_t charSpace=10, uint8_t lineSpace=16) {
 		uart_ = uart;
+		model_ = UNKNOWN_MODEL;
+		wheel_ = NO_WHEEL;
 		charSpace_ = charSpace;
 		lineSpace_ = lineSpace;
 		lineSpacing_ = LINESPACING_ONE;
@@ -157,6 +169,7 @@ public:
 	uint8_t sendCommand(ww_command command);
 	uint8_t sendCommand(ww_command command, uint8_t data);
 	uint8_t sendCommand(ww_command command, uint8_t data1, uint8_t data2);
+	void readCommand();
 	void waitReady();
 	void readFlush();
 
@@ -189,15 +202,28 @@ public:
 	int16_t horizontalMicrospaces();
 	void setLeftMargin();
 	void setCharSpace(uint16_t usteps);
+	// Directly sets the line spacing
 	void setLineSpace(uint8_t usteps);
+	// Sets the single space distance
+	void setLineSpaceSingle(uint8_t usteps);
+	// Sets the number of lines per line feed (1, 1.5, 2, 3)
 	void setLineSpacing(ww_linespacing spacing);
+	// Sets lineSpace based on lineSpaceSingle and lineSpacing
+	void updateLineSpace();
+	// Set charSpace and lineSpace based on wheel pitch
+	void setSpaceForWheel(ww_printwheel wheel);
+	// Query wheel and set charSpace and lineSpace
+	void setSpaceForWheel();
 
 private:
 	uint init_;
 	Uart9Bit* uart_;
 	uint16_t buffer[4];
+	ww_model model_;
+	ww_printwheel wheel_;
 	uint16_t charSpace_;
 	uint8_t lineSpace_;
+	uint8_t lineSpaceSingle_;
 	ww_linespacing lineSpacing_;
 	int16_t horizontalMicrospaces_;
 };
