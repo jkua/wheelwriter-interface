@@ -264,8 +264,16 @@ void Wheelwriter::readFlush() {
 }
 
 char Wheelwriter::ascii2Printwheel(char ascii) {
-	// TODO: Add other languages
-	return ascii2UsPrintwheelTable[ascii-0x20];
+	return ascii2UsPrintwheelTable[printwheelTableIndex_][ascii];
+}
+void Wheelwriter::setKeyboard(uint16_t keyboard) {
+	keyboard_ = keyboard;
+	if (keyboard == KEYBOARD_ASCII) {
+		printwheelTableIndex_ = 1;
+	}
+	else {
+		printwheelTableIndex_ = 0;
+	}
 }
 int16_t Wheelwriter::horizontalMicrospaces() {
 	return horizontalMicrospaces_;

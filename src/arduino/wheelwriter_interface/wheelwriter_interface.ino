@@ -196,8 +196,20 @@ void loop() {
       printwheelSample(plusPosition, underscorePosition);
     }
     else if (strcmp(token, "type") == 0) {
-      Serial.write("[FUNCTION] Type\n");
-      typeFunction();
+      uint8_t keyboard = 1;
+      token = strtok(NULL, delim);
+      char* end;
+      while (token != NULL) {
+        uint8_t value = atoi(token);
+        if (value >= 0) {
+          keyboard = value;
+        }
+        token = strtok(NULL, delim);
+      }
+      Serial.write("[FUNCTION] Type ");
+      Serial.write("| Keyboard: ");
+      Serial.println(keyboard);
+      typeFunction(keyboard);
     }
     else {
       Serial.write("[UNKNOWN FUNCTION] Enter 'help' to see a list of available commands\n");
@@ -542,8 +554,8 @@ void readFunction() {
   Serial.write("\n[END]\n");
 }
 
-void typeFunction() {
-  const uint8_t USE_CARAT_AS_CONTROL = 1;
+void typeFunction(uint8_t keyboard) {
+  uint8_t USE_CARAT_AS_CONTROL = 1;
   wheelwriter::ww_linespacing lineSpacing;
   uint8_t caratFlag = 0;
   uint8_t bytesAvailable = 0;
@@ -556,7 +568,12 @@ void typeFunction() {
 
   typewriter.readFlush();
   typewriter.setSpaceForWheel();
+  typewriter.setKeyboard(keyboard);
   typewriter.setLeftMargin();
+
+  if (keyboard == 103) {
+    USE_CARAT_AS_CONTROL = 0;
+  }
 
   Serial.write("[BEGIN]\n");
 
