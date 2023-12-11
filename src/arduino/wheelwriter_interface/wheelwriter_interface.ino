@@ -250,6 +250,8 @@ void bufferTest(uint16_t numChars, uint8_t charsPerLine) {
   uint8_t index = 0;
   uint8_t bufferSize = strlen(buffer);
   uint16_t charsTyped = 0;
+
+  typewriter.readFlush();
   typewriter.setSpaceForWheel();
   typewriter.setLeftMargin();
 
@@ -300,6 +302,8 @@ void characterTest(wheelwriter::ww_typestyle style) {
   char buffer3[] = "1234567890-=!@#$%\xa2&*()_+";
   char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
   char* buffers[4] = {buffer1, buffer2, buffer3, buffer4};
+
+  typewriter.readFlush();
   typewriter.setSpaceForWheel();
   typewriter.setLeftMargin();
 
@@ -311,6 +315,8 @@ void characterTest(wheelwriter::ww_typestyle style) {
 }
 
 void keyboardFunction(uint8_t verbose) {
+  typewriter.readFlush();
+
   Serial.write("[BEGIN]\n");
   while (true) {
     if (Serial.available()) {
@@ -348,6 +354,8 @@ void keyboardFunction(uint8_t verbose) {
 }
 
 void loopbackTest() {
+  typewriter.readFlush();
+
   while (true) {
     Serial.write("\nPress Enter to send query, q to quit...\n");
 
@@ -395,6 +403,8 @@ void loopbackTest() {
 void printwheelSample(const uint8_t plusPosition, const uint8_t underscorePosition) {
   // A printwheel has 96 (0x60) characters
   // This prints in a pair 16 x 6 arrays (regular and bold) with a border of alignment marks
+
+  typewriter.readFlush();
 
   wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
   typewriter.setSpaceForWheel();
@@ -466,6 +476,7 @@ void printwheelSample(const uint8_t plusPosition, const uint8_t underscorePositi
 }
 
 void queryFunction() {
+  typewriter.readFlush();
   uint16_t model = typewriter.queryModel();
   Serial.write("Model: 0x");
   Serial.println(model, HEX);
@@ -481,6 +492,7 @@ void queryFunction() {
 }
 
 void rawCommandFunction() {
+  typewriter.readFlush();
   Serial.write("[BEGIN]\n");
 
   while (true) {
@@ -535,6 +547,7 @@ void rawCommandFunction() {
 }
 
 void readFunction() {
+  typewriter.readFlush();
   Serial.write("[BEGIN]\n");
   while (true) {
     if (Serial.available()) {
@@ -561,10 +574,6 @@ void typeFunction(uint8_t keyboard) {
   uint8_t bytesAvailable = 0;
   uint8_t paused = false;
   wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
-
-  while (Serial.available()) {
-    Serial.read();
-  }
 
   typewriter.readFlush();
   typewriter.setSpaceForWheel();
