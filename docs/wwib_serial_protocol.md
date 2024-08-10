@@ -16,11 +16,11 @@ This protocol uses ASCII with line feeds (`\n`) to end lines.
 On power up, the WWIB starts the main loop and outputs:
 
 ```
-### Wheelwriter Interface ###\n
-[READY]\n
+### Wheelwriter Interface ###
+[READY]
 ```
 
-The `[READY]\n` prompt indicates that the WWIB is ready to accept one of the 
+The `[READY]` prompt indicates that the WWIB is ready to accept one of the 
 following primary commands:
 
 1. `help` - print the help text, listings these commands
@@ -83,16 +83,16 @@ This mode assumes that the Wheelwriter is using a US keyboard layout.
 
 This mode does not suppress the actual typing that the Wheelwriter does.
 
-The WWIB starts by sending `[BEGIN]\n` and then listening for keyboard input. 
+The WWIB starts by sending `[BEGIN]` and then listening for keyboard input. 
 When a keypress is detected, the ASCII value is output. 
 
 In `v` verbosity mode, each keypress is sent as a hexadecimal value on a 
-separate line. e.g. `Keypress: 0x61\n`
+separate line. e.g. `Keypress: 0x61`
 
-In `vv` verbosity mode, in addition to the above, the line `NO_KEYPRESS\n` is 
+In `vv` verbosity mode, in addition to the above, the line `NO_KEYPRESS` is 
 output if no keypress is detected.
 
-Sending `q` or EOT/CTRL-D/`0x24` will end the capture and return to the main 
+Sending `q` or EOT/`^D`/`0x24` will end the capture and return to the main 
 loop.
 
 ### Loopback test
@@ -103,7 +103,7 @@ This performs a simple low level test of Wheelwriter bus communication by
 continuously sending a query command one byte at a time and listening for 
 ACKs/responses after each byte.
 
-Sending `q` or EOT/CTRL-D/`0x24` will end the test and return to the main 
+Sending `q` or EOT/`^D`/`0x24` will end the test and return to the main 
 loop.
 
 ### Query test
@@ -121,7 +121,7 @@ This returns to the main loop after completion.
 
 In this mode, raw commands may be relayed to the Wheelwriter. 
 
-The WWIB starts by outputting `[BEGIN]\n`.
+The WWIB starts by outputting `[BEGIN]`.
 
 Each command is accepted as 1-3 bytes, represented as space separated numeric 
 strings, terminated with a line feed (`\n`). The prefix `0x` may be used to 
@@ -129,7 +129,7 @@ specify hexadecimal values, otherwise they are assumed to be decimal values.
 
 e.g. `0x121 0x00\n` sends the query command (`0x00`) to address (`0x121`)
 
-Sending `q` or EOT/CTRL-D/`0x24` will end this mode and return to the main 
+Sending `q` or EOT/`^D`/`0x24` will end this mode and return to the main 
 loop.
 
 ### Read mode (bus sniffer)
@@ -138,10 +138,10 @@ loop.
 
 In this mode, the WWIB listens for communications on the Wheelwriter bus.
 
-The WWIB starts by outputting `[BEGIN]\n`. Then it outputs each command sequence 
+The WWIB starts by outputting `[BEGIN]`. Then it outputs each command sequence 
 that it hears on the bus.
 
-Sending `q` or EOT/CTRL-D/`0x24` will end this mode and return to the main 
+Sending `q` or EOT/`^D`/`0x24` will end this mode and return to the main 
 loop.
 
 ### Sample mode
