@@ -197,19 +197,28 @@ void loop() {
     }
     else if (strcmp(token, "type") == 0) {
       uint8_t keyboard = 1;
+      uint8_t useCaratAsControl = 1;
       token = strtok(NULL, delim);
       char* end;
+      int i = 0;
       while (token != NULL) {
         uint8_t value = atoi(token);
-        if (value >= 0) {
+        if (i == 0) {
           keyboard = value;
         }
+        else {
+          useCaratAsControl = value;
+          break;
+        }
+        i++;
         token = strtok(NULL, delim);
       }
       Serial.write("[FUNCTION] Type ");
       Serial.write("| Keyboard: ");
-      Serial.println(keyboard);
-      typeFunction(keyboard);
+      Serial.print(keyboard);
+      Serial.write(", UseCaratAsControl: ");
+      Serial.println(useCaratAsControl);
+      typeFunction(keyboard, useCaratAsControl);
     }
     else {
       Serial.write("[UNKNOWN FUNCTION] Enter 'help' to see a list of available commands\n");
@@ -567,8 +576,8 @@ void readFunction() {
   Serial.write("\n[END]\n");
 }
 
-void typeFunction(uint8_t keyboard) {
-  uint8_t USE_CARAT_AS_CONTROL = 1;
+void typeFunction(uint8_t keyboard, uint8_t useCaratAsControl) {
+  uint8_t USE_CARAT_AS_CONTROL = useCaratAsControl;
   wheelwriter::ww_linespacing lineSpacing;
   uint8_t caratFlag = 0;
   uint8_t bytesAvailable = 0;
@@ -579,10 +588,6 @@ void typeFunction(uint8_t keyboard) {
   typewriter.setSpaceForWheel();
   typewriter.setKeyboard(keyboard);
   typewriter.setLeftMargin();
-
-  if (keyboard == 103) {
-    USE_CARAT_AS_CONTROL = 0;
-  }
 
   Serial.write("[BEGIN]\n");
 
