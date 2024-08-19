@@ -42,7 +42,7 @@ enum ww_command {
 static const uint8_t ww_command_length[16] = {1, 1, 3, 3, 
                                  		    3, 2, 3, 1, 
                                  		    1, 2, 2, 1,
-                                 		    2, 2, 2, 0};
+                                 		    3, 2, 2, 0};
 
 enum ww_platen_direction {
 	PLATEN_DIRECTION_DOWN = 0x00,
@@ -309,6 +309,8 @@ private:
 	uint8_t lineSpaceSingle_;
 	ww_linespacing lineSpacing_;
 	int16_t horizontalMicrospaces_;
+
+	char stringBuffer[256];
 
 };
 

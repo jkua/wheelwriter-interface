@@ -558,6 +558,7 @@ void rawCommandFunction() {
 void readFunction() {
   typewriter.readFlush();
   Serial.write("[BEGIN]\n");
+  unsigned long lastCommandTime = 0;
   while (true) {
     if (Serial.available()) {
       String inString = Serial.readStringUntil('\n');
@@ -569,8 +570,18 @@ void readFunction() {
         break;
       }
     }
-    typewriter.readFlush();
-    typewriter.readCommand();
+    // typewriter.readFlush();
+    uint8_t blocking = 0;
+    uint8_t verbose = 1;
+    uint8_t commandLength = typewriter.readCommand(blocking, verbose);
+
+    if (commandLength) {
+      lastCommandTime = millis();
+    }
+    if (lastCommandTime && ((millis() - lastCommandTime) > 1000)) {
+      Serial.write('\n');
+      lastCommandTime = 0;
+    }
   }
   
   Serial.write("\n[END]\n");

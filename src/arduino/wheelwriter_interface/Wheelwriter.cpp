@@ -99,26 +99,27 @@ uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
 	if ((blocking == 0) && (!uart_->available())) {
 		return 0;
 	}
+	unsigned long startTime = millis();
 	bufferIn_[0] = uart_->read();
 	
 	if (bufferIn_[0] != 0x121) {
 		if (verbose == 2) {
-			Serial.write("\nERROR: readCommand(): expected address byte = 0x121! Got 0x");
-			Serial.println(bufferIn_[0], HEX);
+			sprintf(stringBuffer, "\nERROR: readCommand(): expected address byte = 0x121! Got 0x%03x\n", bufferIn_[0]);
+			Serial.write(stringBuffer);
 		}
 		return 0;
 	}
 	if (verbose) {
-		Serial.write("Address: 0x");
-		Serial.print(bufferIn_[0], HEX);
+		sprintf(stringBuffer, "[%d] ADR 0x%03x", startTime, bufferIn_[0]);
+		Serial.write(stringBuffer);
 	}
 
 	// Address ACK
 	response = uart_->read();
 	if (response != 0) {
 		if (verbose == 2) {
-			Serial.write("\nERROR: readCommand(): expected address ACK = 0! Got 0x");
-			Serial.println(response, HEX);
+			sprintf(stringBuffer, "\nERROR: readCommand(): expected address ACK = 0! Got 0x%02x\n", response);
+			Serial.write(stringBuffer);
 		}
 		return 0;
 	}
@@ -127,14 +128,14 @@ uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
 	bufferIn_[1] = uart_->read();
 	if (bufferIn_[1] > 0xe) {
 		if (verbose == 2) {
-			Serial.write("\nERROR: readCommand(): expected command < 0x0f! Got 0x");
-			Serial.println(response, HEX);
+			sprintf(stringBuffer, "\nERROR: readCommand(): expected command < 0x0f! Got 0x%02x\n", bufferIn_[1]);
+			Serial.write(stringBuffer);
 		}
 		return 0;
 	}
 	if (verbose) {
-		Serial.write(", Command: 0x");
-		Serial.print(bufferIn_[1], HEX);
+		sprintf(stringBuffer, ", CMD: 0x%02x", bufferIn_[1]);
+		Serial.write(stringBuffer);
 	}
 
 	uint8_t commandLength = ww_command_length[bufferIn_[1]];
@@ -143,15 +144,15 @@ uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
 	response = uart_->read();
 	if (commandLength == 1) {
 		if (verbose) {
-			Serial.write(", Response: 0x");
-			Serial.println(response, HEX);
+			sprintf(stringBuffer, ", RSP: 0x%02x (%d ms)\n", response, millis()-startTime);
+			Serial.write(stringBuffer);
 		}
 		return commandLength;
 	}
 	if ((commandLength > 1) && (response != 0)) {
 		if (verbose == 2) {
-			Serial.write("\nERROR: readCommand(): expected command ACK = 0! Got 0x");
-			Serial.println(response, HEX);
+			sprintf(stringBuffer, "\nERROR: readCommand(): expected command ACK = 0! Got 0x%02x\n", response);
+			Serial.write(stringBuffer);
 		}
 		return 0;	
 	}
@@ -159,23 +160,23 @@ uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
 	// Data1
 	bufferIn_[2] = uart_->read();
 	if (verbose) {
-		Serial.write(", Data1: 0x");
-		Serial.print(bufferIn_[2], HEX);
+		sprintf(stringBuffer, ", DT1: 0x%02x", bufferIn_[2]);
+		Serial.write(stringBuffer);
 	}
 
 	// Data1 ACK
 	response = uart_->read();
 	if (commandLength == 2) {
 		if (verbose) {
-			Serial.write(", Response: 0x");
-			Serial.println(response, HEX);
+			sprintf(stringBuffer, ", RSP: 0x%02x (%d ms)\n", response, millis()-startTime);
+			Serial.write(stringBuffer);
 		}
 		return commandLength;
 	}
 	if ((commandLength > 2) && (response != 0)) {
 		if (verbose == 2) {
-			Serial.write("\nERROR: readCommand(): expected data1 ACK = 0! Got 0x");
-			Serial.println(response, HEX);
+			sprintf(stringBuffer, "\nERROR: readCommand(): expected data1 ACK = 0! Got 0x%02x\n", response);
+			Serial.write(stringBuffer);
 		}
 		return 0;	
 	}
@@ -183,23 +184,23 @@ uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
 	// Data2
 	bufferIn_[3] = uart_->read();
 	if (verbose) {
-		Serial.write(", Data2: 0x");
-		Serial.print(bufferIn_[3], HEX);
+		sprintf(stringBuffer, ", DT2: 0x%02x", bufferIn_[3]);
+		Serial.write(stringBuffer);
 	}
 
 	// Data2 ACK
 	response = uart_->read();
 	if (commandLength == 3) {
 		if (verbose) {
-			Serial.write(", Response: 0x");
-			Serial.println(response, HEX);
+			sprintf(stringBuffer, ", RSP: 0x%02x (%d ms)\n", response, millis()-startTime);
+			Serial.write(stringBuffer);
 		}
 		return commandLength;
 	}
 	if ((commandLength > 3) && (response != 0)) {
 		if (verbose == 2) {
-			Serial.write("\nERROR: readCommand(): expected data2 ACK = 0! Got 0x");
-			Serial.println(response, HEX);
+			sprintf(stringBuffer, "\nERROR: readCommand(): expected data2 ACK = 0! Got 0x%02x\n", response);
+			Serial.write(stringBuffer);
 		}
 		return 0;	
 	}
