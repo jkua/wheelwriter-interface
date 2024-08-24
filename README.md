@@ -69,3 +69,9 @@ FPGA version running.
 Babcock and Stephen Casner to interface to a Wheelwriter 1000 by instead 
 sitting between the keyboard and the logic controller. This work was developed 
 to build a general-purpose ASCII terminal.
+
+[Generative Daily Planner](https://www.thingswemake.com/generative-daily-planner)
+([Github](https://github.com/joshsucher/wheelwriter-gpt-agenda)) by Josh 
+Sucher, is a "GPT-4-powered bot that ingests email, calendar and contacts from 
+a range of sources (mainly Gmail, Gcal and iCloud) and outputs a daily agenda" 
+and utilizes code from this repo.
