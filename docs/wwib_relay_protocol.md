@@ -10,7 +10,7 @@ In this mode, the complete command is sent, including the address.
 
 #### Single command - full (0x01, 6 bytes)
 * Format: `0x01 <address (1 byte)> <command (1 byte)> <data1 (1 byte)> <data2 (1 byte)> \n`
-* Example: 0x01 0x21 0x03 0x01 0x0a 0x0a
+* Example: `0x01 0x21 0x03 0x01 0x0a 0x0a`
 
 #### Batched commands (halt on error) - full (0x02, 4n+4 bytes)
 * Format: `0x02 <# commands (2 bytes)> <full command 1 (4 bytes)> <full command 2 (4 bytes)> ... <full command n (4 bytes)>\n`
@@ -31,6 +31,7 @@ destination address** configuration command.
 
 #### Single command - abbreviated (0x11, 5 bytes)
 * Format: `0x11 <command (1 byte)> <data1 (1 byte)> <data2 (1 byte)> \n`
+* Example: `0x01 0x03 0x01 0x0a 0x0a`
 
 #### Batched commands (halt on error) - abbreviated (0x12, 3n+4 bytes)
 * Format: `0x12 <# commands (2 bytes)> <abbreviated command 1 (3 bytes)> <abbreviated command 2 (3 bytes)> ... <abbreviated command n (3 bytes)>\n`
