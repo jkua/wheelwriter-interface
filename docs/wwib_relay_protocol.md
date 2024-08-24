@@ -5,36 +5,62 @@ of commands.
 
 ## Relay commands
 
-### Single command - full (0x01, 7 bytes)
-Format: `0x01 <address (2 bytes)> <command (1 byte)> <data1 (1 byte)> <data2 (1 byte)> \n`
-Example: 0x01 0x0121 0x03 0x01 0x0a 0x0a
+### Full command mode
+In this mode, the complete command is sent, including the address.
 
-### Batched commands (halt on error) - full (0x02, 5n+4 bytes)
-Format: `0x02 <# commands (2 bytes)> <full command 1 (5 bytes)> <full command 2 (5 bytes)> ... <full command n (5 bytes)>\n`
+#### Single command - full (0x01, 6 bytes)
+Format: `0x01 <address (1 byte)> <command (1 byte)> <data1 (1 byte)> <data2 (1 byte)> \n`
+Example: 0x01 0x21 0x03 0x01 0x0a 0x0a
+
+#### Batched commands (halt on error) - full (0x02, 4n+4 bytes)
+Format: `0x02 <# commands (2 bytes)> <full command 1 (4 bytes)> <full command 2 (4 bytes)> ... <full command n (4 bytes)>\n`
 
 In `halt on error` mode, the interface board will stop sending commands if any 
 command fails and return `batch_failed` with the index of the failed command.
 
-### Batched commands (ignore errors) - full (0x03, 5n+4 bytes)
-Format: `0x02 <# commands (2 bytes)> <full command 1 (5 bytes)> <full command 2 (5 bytes)> ... <full command n (5 bytes)>\n`
+#### Batched commands (ignore errors) - full (0x03, 4n+4 bytes)
+Format: `0x02 <# commands (2 bytes)> <full command 1 (4 bytes)> <full command 2 (4 bytes)> ... <full command n (4 bytes)>\n`
 
 In `ignore errors` mode, the interface board will continue sending commands 
 even if any of them fail.
 
-### Single command - motor (0x11, 5 bytes)
+### Abbreviated command mode
+In this mode, the address is fixed. By default, this is the address for the 
+motor control board, `0x21`. This can be changed at runtime with the **set 
+destination address** configuration command.
+
+#### Single command - abbreviated (0x11, 5 bytes)
 Format: `0x11 <command (1 byte)> <data1 (1 byte)> <data2 (1 byte)> \n`
 
-### Batched commands (halt on error) - motor (0x12, 3n+4 bytes)
-Format: `0x12 <# commands (2 bytes)> <motor command 1 (3 bytes)> <motor command 2 (3 bytes)> ... <motor command n (3 bytes)>\n`
+#### Batched commands (halt on error) - abbreviated (0x12, 3n+4 bytes)
+Format: `0x12 <# commands (2 bytes)> <abbreviated command 1 (3 bytes)> <abbreviated command 2 (3 bytes)> ... <abbreviated command n (3 bytes)>\n`
 
 In `halt on error` mode, the interface board will stop sending commands if any 
 command fails and return `batch_failed` with the index of the failed command.
 
-### Batched commands (ignore errors) - motor (0x13, 5n+4 bytes)
-Format: `0x13 <# commands (2 bytes)> <motor command 1 (3 bytes)> <motor command 2 (3 bytes)> ... <motor command n (3 bytes)>\n`
+#### Batched commands (ignore errors) - abbreviated (0x13, 5n+4 bytes)
+Format: `0x13 <# commands (2 bytes)> <abbreviated command 1 (3 bytes)> <abbreviated command 2 (3 bytes)> ... <abbreviated command n (3 bytes)>\n`
 
 In `ignore errors` mode, the interface board will continue sending commands 
 even if any of them fail.
+
+### Relay configuration
+Configure relay parameters.
+
+#### Get destination address (0xe1, 2 bytes)
+Format: `0x1e \n`
+
+This returns the current address. The `response_status` will be **configuration 
+success** (0xf0) and `typewriter_reply` will be the address.
+
+#### Set destination address (0xf1, 3 bytes)
+Format: `0x1f <address (1 byte)> \n`
+Example (set address to `0xab`): `0x1f 0xab 0x0a`
+
+This changes the destination address until the interface board is power-cycled, 
+at which time it returns to the default. The `response_status` will be 
+**configuration success** (0xf0) and `typewriter_reply` will be the new 
+address.
 
 ### NOOP (0x0a, 1 byte)
 Format: `\n`
@@ -64,3 +90,4 @@ Format: `<response_status> <typewriter_reply/error_data> \n`
 * 0x06 - Relay command timeout - the full relay command, including the 
          terminating `\n`, was not received before the timeout
     * `error_data` contains the relay command byte
+* 0xf0 - Configuration success
