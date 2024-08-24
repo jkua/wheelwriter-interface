@@ -56,7 +56,7 @@ success** (0xf0) and `typewriter_reply` will be the address.
 
 #### Set destination address (0xf1, 3 bytes)
 * Format: `0xf1 <address (1 byte)> \n`
-* Example (set address to `0xab`): `0x1f 0xab 0x0a`
+* Example (set address to `0xab`): `0xf1 0xab 0x0a`
 
 This changes the destination address until the interface board is power-cycled, 
 at which time it returns to the default. The `response_status` will be 
