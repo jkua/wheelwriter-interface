@@ -49,13 +49,13 @@ even if any of them fail.
 Configure relay parameters.
 
 #### Get destination address (0xe1, 2 bytes)
-* Format: `0x1e \n`
+* Format: `0xe1 \n`
 
 This returns the current address. The `response_status` will be **configuration 
 success** (0xf0) and `typewriter_reply` will be the address.
 
 #### Set destination address (0xf1, 3 bytes)
-* Format: `0x1f <address (1 byte)> \n`
+* Format: `0xf1 <address (1 byte)> \n`
 * Example (set address to `0xab`): `0x1f 0xab 0x0a`
 
 This changes the destination address until the interface board is power-cycled, 
