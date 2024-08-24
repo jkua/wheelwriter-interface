@@ -62,25 +62,26 @@ timeout, the error code will be set in the response.
 #### Batched commands - full, halt on error (0x12, 4n+4 bytes)
 * Format: `0x12 <# commands (2 bytes)> <full command 1 (4 bytes)> <full command 2 (4 bytes)> ... <full command n (4 bytes)>\n`
 
-In `halt on error` mode, the interface board will stop sending commands if any 
-command fails and return `batch_failed` with the index of the failed command.
+If any byte of any command is not acknowleged by the typewriter before the 
+timeout, the interface board will stop sending commands and return 
+`batch_failed` with the index of the failed command.
 
 #### Single command - full, ignore errors (0x14, 6 bytes)
 * Format: `0x14 <address (1 byte)> <command (1 byte)> <data1 (1 byte)> <data2 (1 byte)> \n`
 * Example: `0x14 0x21 0x03 0x01 0x0a 0x0a`
 
-In `ignore errors` mode, the interface board will continue sending command 
-bytes, even if not acknowledged. Configure the timeout value to control how 
-long the interface board should wait for a response before continuing.
+With the `ignore_errors_flag` set, the interface board will continue sending 
+command bytes, even if not acknowledged. Configure the timeout value to control 
+how long the interface board should wait for a response before continuing.
 
 #### Batched commands - full, ignore errors (0x16, 4n+4 bytes)
 * Format: `0x16 <# commands (2 bytes)> <full command 1 (4 bytes)> <full command 2 (4 bytes)> ... <full command n (4 bytes)>\n`
 
-In `ignore errors` mode, the interface board will continue sending command 
-bytes, even if not acknowledged. Configure the timeout value to control how 
-long the interface board should wait for a response before continuing.
+With the `ignore_errors_flag` set, the interface board will continue sending 
+command bytes, even if not acknowledged. Configure the timeout value to control 
+how long the interface board should wait for a response before continuing.
 
-#### Single command - abbreviated (0x11, 5 bytes)
+#### Single command - abbreviated, halt on error (0x11, 5 bytes)
 * Format: `0x11 <command (1 byte)> <data1 (1 byte)> <data2 (1 byte)> \n`
 * Example: `0x01 0x03 0x01 0x0a 0x0a`
 
@@ -88,7 +89,7 @@ In this mode, the Wheelwriter destination address is not sent and the default
 value (motor control board, 0x21) is used. This can be changed at runtime with 
 the **set destination address** configuration command. 
 
-#### Batched commands - abbreviated (0x13, 3n+4 bytes)
+#### Batched commands - abbreviated, halt on error (0x13, 3n+4 bytes)
 * Format: `0x13 <# commands (2 bytes)> <abbreviated command 1 (3 bytes)> <abbreviated command 2 (3 bytes)> ... <abbreviated command n (3 bytes)>\n`
 
 In this mode, the Wheelwriter destination address is not sent and the default 
@@ -99,7 +100,7 @@ the **set destination address** configuration command.
 ### Configuration commands (0xeN, 0xfN)
 Used to configure relay parameters.
 
-The structure of a configuration command is the following sequence of bytes:
+The structure of a query/configuration command is the following sequence of bytes:
 * Parameter query (2 bytes): `<query_command (0xeN)> \n`
 * Parameter config (3 bytes): `<config_command (0xfN)> <value> \n`
 
