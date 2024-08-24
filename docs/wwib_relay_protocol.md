@@ -23,6 +23,8 @@ Ends relay mode and returns.
 
 
 ### Relay command (0x1N)
+Used to relay commands to the typewriter.
+
 The structure of a relay command is the following sequence of bytes:
 * `<relay_flags> <ww_dest_addr> <ww_command> <ww_data_1> <ww_data_2>\n`
 	* `<relay_flags>` identifies that this is a relay command and sets certain 
@@ -142,12 +144,13 @@ at which time it returns to the default. The `response_status` will be
 timeout.
 
 
-## Response (interface board to client) (3 bytes)
-* Format: `<response_status> <typewriter_reply/error_data/parameter_value> \n`
+## Response (interface board to client) (4 bytes)
+* Format: `<command_responding_to> <response_status> <typewriter_reply/error_data/parameter_value> \n`
+	* `<command_responding_to>` indicates the command that the interface board is replying to
 
 ### Response statuses
 * Reserved: 0x0N
-* Relay reponses: 0x1N
+* Relay reponses:
 	* 0x10 - Success
 		* `typewriter_reply` contains the typewriter's response
 	* 0x11 - NACK/timeout - typewriter command was not acknowleged before timeout 
@@ -163,7 +166,7 @@ timeout.
 	* 0x16 - Relay command transmission timeout - the full relay command, including the 
 	         terminating `\n`, was not received before the timeout
 	    * `error_data` contains the relay command byte
-* Parameter query responses: 0xeN
+* Parameter query responses:
 	* 0xe0 - Parameter query success
 	* 0xe1 - Parameter query failed
 	* 0xe3 - Invalid parameter
@@ -172,13 +175,13 @@ timeout.
 		* `error_data` contains the expected length
 	* 0xe6 - Query command transmission timeout
 		* `error_data` contains the command byte
-* Parameter config responses: 0xfN
+* Parameter config responses:
 	* 0xf0 - Parameter config success
 	* 0xf1 - Parameter config failed
 	* 0xf3 - Invalid parameter
 		* `error_data` contains the command byte
 	* 0xf5 - Invalid config command length
 		* `error_data` contains the expected length
-	* 0xf5 - Config command transmission timeout
+	* 0xf6 - Config command transmission timeout
 		* `error_data` contains the command byte
 * Panic: 0xff - things have gone off the rails
