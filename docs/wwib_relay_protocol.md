@@ -92,3 +92,4 @@ Ends relay mode and returns
          terminating `\n`, was not received before the timeout
     * `error_data` contains the relay command byte
 * 0xf0 - Configuration success
+* 0xff - Panic - things have gone off the rails
