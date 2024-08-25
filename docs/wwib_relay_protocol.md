@@ -174,7 +174,7 @@ timeout.
 		* `error_data` contains the command byte
 	* 0xf1 - Invalid command length
 		* `error_data` contains the expected length
-	* 0xf2 - Command transmission timeout - the full command including the 
+	* 0xf2 - Command receive timeout - the full command including the 
 		terminating `\n`, was not received before the timeout.
 		* `error_data` contains the command byte
 	* 0xff - Panic - things have gone off the rails
