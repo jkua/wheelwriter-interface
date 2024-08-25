@@ -1,0 +1,8 @@
+#!/bin/zsh
+
+# Create the virtual environment
+python3 -m venv venv
+
+# Install requirements in the virtual environment
+TARGET="pip3 install -r requirements.txt"
+/bin/zsh -c "source ./venv/bin/activate; exec $TARGET"

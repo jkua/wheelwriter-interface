@@ -99,12 +99,12 @@ value (motor control board, 0x21) is used. This can be changed at runtime with
 the **set destination address** configuration command. 
 
 
-### Configuration commands (0xeN, 0xfN)
+### Configuration commands (0xcN, 0xdN)
 Used to configure relay parameters.
 
 The structure of a query/configuration command is the following sequence of bytes:
-* Parameter query (2 bytes): `<query_command (0xeN)> \n`
-* Parameter config (3 bytes): `<config_command (0xfN)> <value> \n`
+* Parameter query (2 bytes): `<query_command (0xdN)> \n`
+* Parameter config (3 bytes): `<config_command (0xeN)> <value> \n`
 
 Structure of the `query_command` / `config_command` byte (8 bits): 
 * `<config_command_flag (1)> <reserved (1)> <reserved (1)> <get/set> | <parameter (4 bits)>`
@@ -112,35 +112,35 @@ Structure of the `query_command` / `config_command` byte (8 bits):
 		* 0x00: Wheelwriter destination address (default: 0x21)
 		* 0x01: Command timeout in milliseconds (default: 100 (0x64))
 
-#### Get destination address (0xe0, 2 bytes)
-* Format: `0xe0 \n`
+#### Get destination address (0xd0, 2 bytes)
+* Format: `0xd0 \n`
 
 This returns the current address. The `response_status` will be **parameter 
-query success** (0xe0) and `parameter_value` will be the address.
+query success** (0xd0) and `parameter_value` will be the address.
 
-#### Set destination address (0xf0, 3 bytes)
-* Format: `0xf0 <address (1 byte)> \n`
-* Example (set address to `0xab`): `0xf0 0xab 0x0a`
+#### Set destination address (0xe0, 3 bytes)
+* Format: `0xe0 <address (1 byte)> \n`
+* Example (set address to `0xab`): `0xe0 0xab 0x0a`
 
 This changes the destination address until the interface board is power-cycled, 
 at which time it returns to the default. The `response_status` will be 
-**parameter config success** (0xf0) and `parameter_value` will be the new 
+**parameter config success** (0xe0) and `parameter_value` will be the new 
 address.
 
-#### Get command timeout (0xe1, 2 bytes)
-* Format: `0xe1 \n`
+#### Get command timeout (0xd1, 2 bytes)
+* Format: `0xd1 \n`
 
 This returns the current timeout in milliseconds. The `response_status` will 
-be **parameter query success** (0xe0) and `parameter_value` will be the 
+be **parameter query success** (0xd0) and `parameter_value` will be the 
 timeout value.
 
-#### Set command timeout (0xf1, 3 bytes)
-* Format: `0xf1 <address (1 byte)> \n`
-* Example (set timeout to 200 ms): `0xf1 0xc8 0x0a`
+#### Set command timeout (0xe1, 3 bytes)
+* Format: `0xe1 <address (1 byte)> \n`
+* Example (set timeout to 200 ms): `0xe1 0xc8 0x0a`
 
 This changes the destination address until the interface board is power-cycled, 
 at which time it returns to the default. The `response_status` will be 
-**parameter config success** (0xf0) and `parameter_value` will be the new 
+**parameter config success** (0xe0) and `parameter_value` will be the new 
 timeout.
 
 
@@ -159,29 +159,22 @@ timeout.
 		* `error_data` is the index of the command which failed (zero-indexed)
 	* 0x13 - Invalid typewriter command - the command to be relayed is invalid
 		* `error_data` is the index of the command which failed (zero-indexed)
-	* 0x14 - Invalid relay command byte - the relay command byte is invalid
+* Parameter query responses: 0xdN
+	* 0xd0 - Parameter query success
+	* 0xd1 - Parameter query failed
+	* 0xd3 - Invalid parameter
 		* `error_data` contains the command byte
-	* 0x15 - Invalid relay command length - the length of the relay command is invalid
-		* `error_data` contains the expected length
-	* 0x16 - Relay command transmission timeout - the full relay command, including the 
-	         terminating `\n`, was not received before the timeout
-	    * `error_data` contains the relay command byte
-* Parameter query responses:
-	* 0xe0 - Parameter query success
-	* 0xe1 - Parameter query failed
+* Parameter config responses: 0xeN
+	* 0xe0 - Parameter config success
+	* 0xe1 - Parameter config failed
 	* 0xe3 - Invalid parameter
 		* `error_data` contains the command byte
-	* 0xe5 - Invalid query command length
+* General error responses: 0xfN
+	* 0xf0 - Invalid command
+		* `error_data` contains the command byte
+	* 0xf1 - Invalid command length
 		* `error_data` contains the expected length
-	* 0xe6 - Query command transmission timeout
+	* 0xf2 - Command transmission timeout - the full command including the 
+		terminating `\n`, was not received before the timeout.
 		* `error_data` contains the command byte
-* Parameter config responses:
-	* 0xf0 - Parameter config success
-	* 0xf1 - Parameter config failed
-	* 0xf3 - Invalid parameter
-		* `error_data` contains the command byte
-	* 0xf5 - Invalid config command length
-		* `error_data` contains the expected length
-	* 0xf6 - Config command transmission timeout
-		* `error_data` contains the command byte
-* Panic: 0xff - things have gone off the rails
+	* 0xff - Panic - things have gone off the rails

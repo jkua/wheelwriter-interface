@@ -9,6 +9,7 @@
 using namespace wheelwriter;
 
 uint8_t Wheelwriter::sendCommand(ww_command command) {
+	bufferOut_[0] = (uint16_t)defaultAddress_ + 0x100;
 	bufferOut_[1] = command;
 	uint16_t response;
 
@@ -27,6 +28,7 @@ uint8_t Wheelwriter::sendCommand(ww_command command) {
 	return uart_->read();
 }
 uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data) {
+	bufferOut_[0] = (uint16_t)defaultAddress_ + 0x100;
 	bufferOut_[1] = command;
 	bufferOut_[2] = data;
 	uint16_t response;
@@ -55,6 +57,7 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data) {
 	return uart_->read();
 }
 uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data2) {
+	bufferOut_[0] = (uint16_t)defaultAddress_ + 0x100;
 	bufferOut_[1] = command;
 	bufferOut_[2] = data1;
 	bufferOut_[3] = data2;
@@ -92,6 +95,63 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data
 	uart_->read(); // Ignore self-transmission
 	return uart_->read();
 }
+uint8_t Wheelwriter::sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t* error, int ignoreErrors) {
+    *error = 0;
+
+    // Check if command is valid
+    if (command > WW_MAX_VALID_COMMAND) {
+    	*error = 0x13;
+    	return command;
+    }
+
+    uint8_t commandLength = ww_command_length[command];
+
+    bufferOut_[0] = address + 0x100;
+	bufferOut_[1] = command;
+	bufferOut_[2] = data1;
+	bufferOut_[3] = data2;
+	uint16_t response;
+	
+	// Send address
+	uart_->write(bufferOut_[0]);
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (!ignoreErrors && (response != 0)) { // Bad ACK
+		*error = 0x11;
+		return 0;
+	}
+
+	// Send command
+	uart_->write(bufferOut_[1]);
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (commandLength == 1) {
+		return response;
+	}
+	if (!ignoreErrors && (response != 0)) { // Bad ACK
+		*error = 0x11;
+		return 1;
+	}
+
+	// Send data 1
+	uart_->write(bufferOut_[2]);
+	uart_->read(); // Ignore self-transmission
+	response = uart_->read();
+	if (commandLength == 2) {
+		return response;
+	}
+	if (!ignoreErrors && (response != 0)) { // Bad ACK
+		*error = 0x11;
+		return 2;
+	}
+
+	// Send data 2
+	uart_->write(bufferOut_[3]);
+	uart_->read(); // Ignore self-transmission
+	return uart_->read();
+
+}
+
 uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
 	uint16_t response;
 
@@ -466,3 +526,11 @@ void Wheelwriter::sendCode(ww_code code) {
 	sendCommand(SEND_CODE, code);
 }
 
+// Get the default address
+uint8_t Wheelwriter::getDefaultAddress() {
+	return defaultAddress_;
+}
+// Set the default address
+void Wheelwriter::setDefaultAddress(uint8_t address) {
+	defaultAddress_ = address;
+}

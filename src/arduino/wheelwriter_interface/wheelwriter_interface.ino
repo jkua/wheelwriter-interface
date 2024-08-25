@@ -66,6 +66,7 @@ void loop() {
       Serial.write("query - query typewriter for information\n");
       Serial.write("raw - send raw commands\n");
       Serial.write("read - read bus commands\n");
+      Serial.write("relay - relay bus commands\n");
       Serial.write("sample - print a type sample\n");
       Serial.write("type - type characters on the typewriter\n");
     }
@@ -168,6 +169,11 @@ void loop() {
       Serial.write("[FUNCTION] Read Bus\n");
       readFunction();
     }
+    else if (strcmp(token, "relay") == 0) {
+      Serial.write("[FUNCTION] Relay commands\n");
+      relayFunction();
+    }
+    
     else if (strcmp(token, "sample") == 0) {
       uint8_t plusPosition = 0x3b;
       uint8_t underscorePosition = 0x4f;
@@ -585,6 +591,165 @@ void readFunction() {
   }
   
   Serial.write("\n[END]\n");
+}
+
+void relayFunction() {
+  typewriter.readFlush();
+  Serial.write("[BEGIN]\n");
+  unsigned long commandStartTime, commandDuration;
+  unsigned long timeout = 1000;
+  unsigned char inByte;
+  unsigned char response[4];
+  while (true) {
+    if (Serial.available()) {
+      commandStartTime = millis();
+
+      // Read the command byte and hand off to the respective handlers
+      inByte = Serial.read();
+      if (inByte == 0x04) { // ^D, end mode
+        break;
+      }
+      if (inByte == 0x0a) { // \n, NOOP
+        continue;
+      }
+      if (inByte & 0x10) {
+        relayCommand(inByte, commandStartTime, timeout);
+        continue;
+      }
+      if (inByte & 0x80) {
+        //configCommand(inByte, commandStartTime, timeout);
+        continue;
+      }
+
+      // Unknown command byte - read until \n and return error
+      response[0] = inByte; // Command byte we are responding to
+      response[1] = 0xf0;   // Invalid command response
+      response[2] = inByte;
+      response[3] = '\n';
+      while (true) {
+        if (Serial.available()) {
+          inByte = Serial.read();
+          if (inByte == '\n') {
+            break;
+          }
+        }
+        commandDuration = millis() - commandStartTime;
+        if (commandDuration > timeout) {
+          break;
+        }
+      }
+      Serial.write(response, 4);
+    }
+  }
+  Serial.write("\n[END]\n");
+}
+
+void relayCommand(char commandByte, unsigned long commandStartTime, unsigned long timeout) {  
+  bool abbreviatedFlag = (commandByte & 0x01);
+  bool batchFlag = (commandByte & 0x02);
+  bool ignoreErrorsFlag = (commandByte & 0x04);
+
+  unsigned char batchSize = 1;
+  
+  // In batch mode, read the batch size
+  if (batchFlag) {
+    while (true) {
+      if (Serial.available()) {
+        batchSize = Serial.read();
+        break;
+      }
+      if (timeoutCheckAndRespond(commandStartTime, timeout, commandByte)) {
+        return;
+      }
+    }
+  }
+
+  // Read and relay the commands
+  unsigned char commandBuffer[4];
+  unsigned char response[4];
+  response[0] = commandByte;
+  response[1] = 0x10;
+  response[3] = '\n';
+  int bytesRead, expectedBytes;
+  if (abbreviatedFlag) {
+    commandBuffer[0] = typewriter.getDefaultAddress();
+  }
+  for (unsigned char i = 0; i < batchSize; i++) {
+    if (abbreviatedFlag) {
+      expectedBytes = 3;
+      bytesRead = Serial.readBytes(commandBuffer+1, expectedBytes);
+    }
+    else {
+      expectedBytes = 4;
+      bytesRead = Serial.readBytes(commandBuffer, expectedBytes);
+    }
+    if (bytesRead < expectedBytes) {
+      sendTimeoutResponse(commandByte);
+      return;
+    }
+    uint8_t error;
+    // Serial.write("Sending command\n");
+    // Serial.write(commandBuffer, 4);
+    // Serial.write('\n');
+    uint8_t wwCmdResponse = typewriter.sendCommand(commandBuffer[0], commandBuffer[1], commandBuffer[2], commandBuffer[3], &error, (int)ignoreErrorsFlag);
+    if (!ignoreErrorsFlag && error) {
+        if (batchFlag) {
+          response[1] = 0x12; // Batch error
+          response[2] = i;    // Failed command index
+        }
+        else {
+          response[1] = error;
+          response[2] = wwCmdResponse;
+        }
+        Serial.write(response, 4);
+        return;
+    }
+    else {
+      response[2] = wwCmdResponse;
+    }
+  }
+
+  // Read terminator
+  // Serial.write("Reading terminator\n");
+  unsigned char inByte;
+  bytesRead = Serial.readBytes(&inByte, 1);
+  // Serial.write("bytesRead: ");
+  // Serial.write(bytesRead);
+  // Serial.write('\n');
+  if (bytesRead) {
+    // Serial.write("inByte: ");
+    // Serial.write(inByte);
+    // Serial.write('\n');
+    if (inByte != '\n') {
+      response[1] = 0x15; // Command length error
+      response[2] = expectedBytes * batchSize;  // Expected length
+    }
+    Serial.write(response, 4);
+  }
+  else {
+    sendTimeoutResponse(commandByte);
+  }
+  return;
+}
+
+int timeoutCheckAndRespond(unsigned long commandStartTime, unsigned long timeout, unsigned char commandByte) {
+  unsigned long commandDuration = millis() - commandStartTime;
+  if (commandDuration > timeout) {
+    sendTimeoutResponse(commandByte);
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+void sendTimeoutResponse(unsigned char commandByte) {
+  unsigned char response[4];
+  response[0] = commandByte;  // Command byte we are responding to
+  response[1] = 0xf2;         // Command transmission timeout
+  response[2] = commandByte;
+  response[3] = '\n';
+  Serial.write(response, 4);
 }
 
 void typeFunction(uint8_t keyboard, uint8_t useCaratAsControl) {

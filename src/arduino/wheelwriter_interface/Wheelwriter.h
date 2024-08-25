@@ -129,10 +129,11 @@ enum ww_keypress_type {
 	NO_COMMAND = 0xff
 };
 
-static const uint16_t WW_MOTOR_CTRL_ADDR = 0x121;
+static const uint8_t WW_MOTOR_CTRL_ADDR = 0x21;
 static const uint8_t WW_PRINTWHEEL_MAX = 0x60;
 static const uint8_t WW_CARRIAGE_ADVANCE_USTEP_MAX = 63;
 static const uint8_t WW_PLATEN_ADVANCE_USTEP_MAX = 127;
+static const uint8_t WW_MAX_VALID_COMMAND = SEND_CODE;
 
 //------------------------------------------------------------------------------------------------
 // ASCII (ISO 8859-1) to Wheelwriter US printwheel translation table
@@ -240,13 +241,14 @@ public:
 		charSpace_ = charSpace;
 		lineSpace_ = lineSpace;
 		lineSpacing_ = LINESPACING_ONE;
-		bufferOut_[0] = WW_MOTOR_CTRL_ADDR;
+		defaultAddress_ = WW_MOTOR_CTRL_ADDR;
 		horizontalMicrospaces_ = 0;
 		init_ = 1;
 	}
 	uint8_t sendCommand(ww_command command);
 	uint8_t sendCommand(ww_command command, uint8_t data);
 	uint8_t sendCommand(ww_command command, uint8_t data1, uint8_t data2);
+	uint8_t sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t* error, int ignoreErrors=0);
 	uint8_t readCommand(uint8_t blocking=1, uint8_t verbose=0);
 	ww_keypress_type readKeypress(char& ascii, uint8_t blocking=1, uint8_t verbose=0);
 	void waitReady();
@@ -295,11 +297,17 @@ public:
 	// Query wheel and set charSpace and lineSpace
 	void setSpaceForWheel();
 
+	// Get the default address
+	uint8_t getDefaultAddress();
+	// Set the default address
+	void setDefaultAddress(uint8_t address);
+
 private:
 	uint init_;
 	Uart9Bit* uart_;
 	uint16_t bufferIn_[5];
 	uint16_t bufferOut_[4];
+	uint8_t defaultAddress_;
 	ww_model model_;
 	ww_printwheel wheel_;
 	uint8_t keyboard_;
