@@ -3,7 +3,7 @@
 import time
 import sys
 
-from wheelwriterClient import WheelwriterClient, WWRelayMode
+from wheelwriterClient import WheelwriterInterface, WWRelayMode
 
 if __name__=='__main__':
 	import argparse
@@ -11,8 +11,8 @@ if __name__=='__main__':
 	parser.add_argument('--device', '-d', required=True, help='Serial port to connect to')
 	args = parser.parse_args()
 
-	with WheelwriterClient(args.device) as client:
-		with WWRelayMode(client) as relay:
+	with WheelwriterInterface(args.device) as interface:
+		with WWRelayMode(interface) as relay:
 			
 			# Single command - full
 			print('\nSending single command - full')

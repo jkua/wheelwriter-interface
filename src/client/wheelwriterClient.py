@@ -59,6 +59,8 @@ class WWRelayMode(WWMode):
 	def sendCommand(self, address, command, data=None):
 		if data is None:
 			data = [0, 0]
+		elif not isinstance(data, collections.abc.Sequence):
+			data = [data, 0]
 
 		if address is not None:
 			commandBytes = [0x10, address, command] + data
@@ -161,7 +163,7 @@ class WWTypeMode(WWMode):
 		print(f'\n*** Sent {self.characterCounter} characters ***')
 
 
-class WheelwriterClient(object):
+class WheelwriterInterface(object):
 	MAX_RETRIES = 5
 	def __init__(self, device, baudrate=115200, xonxoff=True):
 		self.ser = serial.Serial(device, baudrate, xonxoff=xonxoff)
@@ -216,3 +218,74 @@ class WheelwriterClient(object):
 		self.state = 'READY'
 
 
+class WheelwriterClient(object):
+	wwCommandByte = {'queryModel': 0x00,
+					 'reset': 0x01,
+					 'type': 0x02,
+					 'typeAndAdvance': 0x03,
+					 'eraseAndAdvance': 0x04,
+					 'movePlaten': 0x05,
+	 				 'moveCarriage': 0x06,
+	 				 'spinWheel': 0x07,
+					 'queryPrintwheel': 0x08,
+					 'unknown0x9': 0x09,
+					 'unknown0xa': 0x0a,
+					 'unknown0xb': 0x0b,
+					 'unknown0xc': 0x0c,
+					 'unknown0xd': 0x0d,
+					 'unknown0xe': 0x0e
+					}
+	wwCommand = {v:k for k, v in wwCommandByte.items()}
+	wwCarriageDirection = {'left': 0x00, 'right': 0x80}
+	wwPlatenDirection = {'down': 0x00, 'up': 0x80}
+	underscorePosition = 0x4f
+
+	def __init__(self, sender):
+		self.sender = sender
+
+	def moveCarriage(self, usteps):
+		numSteps = abs(usteps)
+		numSteps = min(usteps, 0x7fff)  # 11-bit value
+		direction = 'left' if usteps < 0 else 'right'
+
+		data1 = (numSteps >> 8) | self.wwCarriageDirection[direction]
+		data2 = numSteps & 0x00ff
+
+		self._sendCommand(self.wwCommandByte['moveCarriage'], [data1, data2])
+
+	def movePlaten(self, usteps):
+		numSteps = abs(usteps)
+		numSteps = min(usteps, 0x7f) # 7-bit value
+		direction = 'down' if usteps < 0 else 'up'
+
+		data = numSteps | self.wwPlatenDirection[direction]
+
+		self._sendCommand(self.wwCommandByte['movePlaten'], data)
+
+	def queryModel(self):
+		return self._sendCommand(self.wwCommandByte['queryModel'])
+
+	def queryPrintwheel(self):
+		return self._sendCommand(self.wwCommandByte['queryPrintwheel'])
+
+	def type(self, wheelPosition, advanceUsteps=None, style=None):
+		if style == 'normal' or style is None:
+			self._sendCommand(self.wwCommandByte['typeAndAdvance'], [wheelPosition, advanceUsteps])
+		else:
+			self.typeInPlace(wheelPosition, style)
+			if 'bold' in style:
+				advanceUsteps -= 1
+			self.moveCarriage(advanceUsteps)
+
+	def typeInPlace(self, wheelPosition, style=None):
+		if wheelPosition != self.underscorePosition:
+			self._sendCommand(self.wwCommandByte['type'], wheelPosition)
+
+		if 'underline' in style:
+			self._sendCommand(self.wwCommandByte['type'], self.underscorePosition)
+		if 'bold' in style:
+			self.moveCarriage(1)
+			self._sendCommand(self.wwCommandByte['type'], wheelPosition)
+
+	def _sendCommand(self, command, data=None):
+		return self.sender.sendCommand(None, command, data)
