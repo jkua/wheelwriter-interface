@@ -78,6 +78,9 @@ class WWRelayMode(WWMode):
 		else:
 			raise TypeError('At least one of [commands, data] should be a list or tuple!')
 
+		if batchSize > 255:
+			raise Exception('Batch sizes > 255 are not currently supported!')
+
 		if not isinstance(commands, collections.abc.Sequence):
 			commands = [commands for i in range(batchSize)]
 
@@ -104,6 +107,7 @@ class WWRelayMode(WWMode):
 	def _transmitCommand(self, command, successStatus=0x10):
 		command = bytearray(command)
 		ifCommand = command[0]
+		print('')
 		self.printCommand(command)
 		self.wwClient.ser.write(command)
 
@@ -112,7 +116,7 @@ class WWRelayMode(WWMode):
 			self.printResponse(response)
 			if response[0] == ifCommand:
 				if response[1] == successStatus:
-					print(f'Success - query returned 0x{response[2]:x}')
+					print(f'Success - command returned 0x{response[2]:x}')
 				else:
 					print(f'ERROR! interface returned error status 0x{response[1]:x} with data 0x{response[2]:x} ')
 				break
@@ -225,8 +229,8 @@ class WheelwriterClient(object):
 					 'typeAndAdvance': 0x03,
 					 'eraseAndAdvance': 0x04,
 					 'movePlaten': 0x05,
-	 				 'moveCarriage': 0x06,
-	 				 'spinWheel': 0x07,
+					 'moveCarriage': 0x06,
+					 'spinWheel': 0x07,
 					 'queryPrintwheel': 0x08,
 					 'unknown0x9': 0x09,
 					 'unknown0xa': 0x0a,
@@ -237,15 +241,134 @@ class WheelwriterClient(object):
 					}
 	wwCommand = {v:k for k, v in wwCommandByte.items()}
 	wwCarriageDirection = {'left': 0x00, 'right': 0x80}
+	wwModelByte = {'unknown': 0x00,
+				   'wheelwriter 3': 0x06,
+				   'wheelwriter 5': 0x25,
+				   'wheelwriter 6': 0x26
+				  }
+	wwModel = {v:k for k, v in wwCommandByte.items()}
+	wwUnderscorePosition = 0x4f
 	wwPlatenDirection = {'down': 0x00, 'up': 0x80}
-	underscorePosition = 0x4f
+	wwPrintWheelByte = {'proportional': 0x08,
+						'15 cpi': 0x10,
+						'12 cpi': 0x20,
+						'no wheel': 0x21,
+						'10 cpi': 0x40,
+						}
+	wwPrintWheel = {v:k for k, v in wwPrintWheelByte.items()}
+
+	keyboardByte = {'us': 1, 
+					'germany': 26, 
+					'uk': 67, 
+					'spain': 70, 
+					'ascii': 103, 
+					'symbol1': 200, 
+					'symbol2': 202, 
+					'symbol3': 203, 
+					'ussr': 231}
+
+	ascii2Wheel = {
+	    1: [ # US
+		# col: 00    01    02    03    04    05    06    07    08    09    0A    0B    0C    0D    0E    0F    row:
+		#      NUL   SOH   STX   ETX   EOT   ENQ   ACK   BEL   BS    HT    LF    VT    FF    CR    SO    SI
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # 00
+		#      DLE   DC1   DC2   DC3   DC4   NAK   SYN   ETB   CAN   EM    SUB   ESC   FS    GS    RS    US
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # 10
+		#      SP     !     "     #     $     %     &     '     (     )     *     +     ,     -     .     /
+			   0x00, 0x49, 0x4b, 0x38, 0x37, 0x39, 0x3f, 0x4c, 0x23, 0x16, 0x36, 0x3b, 0x0c, 0x0e, 0x57, 0x28, # 20
+		#       0     1     2     3     4     5     6     7     8     9     :     ;     <     =     >     ?
+			   0x30, 0x2e, 0x2f, 0x2c, 0x32, 0x31, 0x33, 0x35, 0x34, 0x2a ,0x4e, 0x50, 0x00, 0x4d, 0x00, 0x4a, # 30
+		#       @     A     B     C     D     E     F     G     H     I     J     K     L     M     N     O
+			   0x3d, 0x20, 0x12, 0x1b, 0x1d, 0x1e, 0x11, 0x0f, 0x14, 0x1F, 0x21, 0x2b, 0x18, 0x24, 0x1a, 0x22, # 40
+		#       P     Q     R     S     T     U     V     W     X     Y     Z     [     \     ]     ^     _   
+			   0x15, 0x3e, 0x17, 0x19, 0x1c, 0x10, 0x0d, 0x29, 0x2d, 0x26, 0x13, 0x41, 0x00, 0x40, 0x00, 0x4f, # 50
+		#       `     a     b     c     d     e     f     g     h     i     j     k     l     m     n     o
+			   0x00, 0x01, 0x59, 0x05, 0x07, 0x60, 0x0a, 0x5a, 0x08, 0x5d, 0x56, 0x0b, 0x09, 0x04, 0x02, 0x5f, # 60
+		#       p     q     r     s     t     u     v     w     x     y     z     {     |     }     ~    DEL  
+			   0x5c, 0x52, 0x03, 0x06, 0x5e, 0x5b, 0x53, 0x55, 0x51, 0x58, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00, # 70
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # 80      
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # 90      
+		#                   ¢                             §                                                  
+			   0x00, 0x00, 0x3A, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # A0      
+		#       °     ±     ²     ³                 ¶                                   ¼     ½              
+			   0x44, 0x3C, 0x43, 0x42, 0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0x47, 0x00, 0x00, # B0
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # C0 
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # E0 
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # D0 
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00] # F0
+		,
+		103: [ # ASCII
+		# col: 00    01    02    03    04    05    06    07    08    09    0A    0B    0C    0D    0E    0F    row:
+		#      NUL   SOH   STX   ETX   EOT   ENQ   ACK   BEL   BS    HT    LF    VT    FF    CR    SO    SI
+      		   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # 00
+		#      DLE   DC1   DC2   DC3   DC4   NAK   SYN   ETB   CAN   EM    SUB   ESC   FS    GS    RS    US
+    		   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # 10
+		#      SP     !     "     #     $     %     &     '     (     )     *     +     ,     -     .     /
+		       0x00, 0x49, 0x4b, 0x38, 0x37, 0x39, 0x3f, 0x4c, 0x23, 0x16, 0x36, 0x3b, 0x0c, 0x0e, 0x57, 0x28, # 20
+		#       0     1     2     3     4     5     6     7     8     9     :     ;     <     =     >     ?
+		       0x30, 0x2e, 0x2f, 0x2c, 0x32, 0x31, 0x33, 0x35, 0x34, 0x2a ,0x4e, 0x50, 0x45, 0x4d, 0x46, 0x4a, # 30
+		#       @     A     B     C     D     E     F     G     H     I     J     K     L     M     N     O
+		       0x3d, 0x20, 0x12, 0x1b, 0x1d, 0x1e, 0x11, 0x0f, 0x14, 0x1F, 0x21, 0x2b, 0x18, 0x24, 0x1a, 0x22, # 40
+		#       P     Q     R     S     T     U     V     W     X     Y     Z     [     \     ]     ^     _   
+		       0x15, 0x3e, 0x17, 0x19, 0x1c, 0x10, 0x0d, 0x29, 0x2d, 0x26, 0x13, 0x41, 0x42, 0x40, 0x3a, 0x4f, # 50
+		#       `     a     b     c     d     e     f     g     h     i     j     k     l     m     n     o
+		       0x3c, 0x01, 0x59, 0x05, 0x07, 0x60, 0x0a, 0x5a, 0x08, 0x5d, 0x56, 0x0b, 0x09, 0x04, 0x02, 0x5f, # 60
+		#       p     q     r     s     t     u     v     w     x     y     z     {     |     }     ~    DEL  
+		       0x5c, 0x52, 0x03, 0x06, 0x5e, 0x5b, 0x53, 0x55, 0x51, 0x58, 0x54, 0x48, 0x43, 0x47, 0x44, 0x00, # 70
+		#  	   
+		       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # 80      
+		#     
+		       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # 90      
+		#                   ¢                             §                                                  
+		       0x00, 0x00, 0x3A, 0x00, 0x00, 0x00, 0x00, 0x45, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # A0      
+		#       °     ±     ²     ³                 ¶                                   ¼     ½              
+		       0x44, 0x3C, 0x43, 0x42, 0x00, 0x00, 0x46, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0x47, 0x00, 0x00, # B0
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # C0 
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # E0 
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # D0 
+		#     
+			   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00] # F0
+		}
 
 	def __init__(self, sender):
 		self.sender = sender
+		self.charSpace = 10
+		self.lineSpaceSingle = 16
+		self.lineSpacing = 1
+		self.carriagePosition = 0
+		self.keyboard = 'us'
+
+	def carriageReturn(self):
+		self.moveCarriage(-self.carriagePosition);
+		self.carriagePosition = 0;
+
+	def erase(self, wheelPosition, advanceUsteps, style=None):
+		if style is None:
+			style = 'normal'
+
+		advanceUsteps = min(advanceUsteps, 0x7f) # 7-bit value
+		if style == 'normal':
+			self._sendCommand(self.wwCommandByte['eraseAndAdvance'], [wheelPosition, advanceUsteps])
+			self.carriagePosition += advanceUsteps
+
+	def lineFeed(self, direction=None):
+		usteps = self.lineSpacing * self.lineSpaceSingle
+		if direction == 'down':
+			usteps = -usteps
+		self.movePlaten(usteps)
 
 	def moveCarriage(self, usteps):
 		numSteps = abs(usteps)
-		numSteps = min(usteps, 0x7fff)  # 11-bit value
+		numSteps = min(numSteps, 0x7fff)  # 11-bit value
 		direction = 'left' if usteps < 0 else 'right'
 
 		data1 = (numSteps >> 8) | self.wwCarriageDirection[direction]
@@ -253,14 +376,25 @@ class WheelwriterClient(object):
 
 		self._sendCommand(self.wwCommandByte['moveCarriage'], [data1, data2])
 
+		if direction == 'right':
+			self.carriagePosition += numSteps;
+		else:
+			self.carriagePosition -= numSteps;
+
+	def moveCarriageNumSpaces(self, spaces):
+		self.moveCarriage(self.charSpace * spaces)
+
 	def movePlaten(self, usteps):
 		numSteps = abs(usteps)
-		numSteps = min(usteps, 0x7f) # 7-bit value
+		numSteps = min(numSteps, 0x7f) # 7-bit value
 		direction = 'down' if usteps < 0 else 'up'
 
 		data = numSteps | self.wwPlatenDirection[direction]
 
 		self._sendCommand(self.wwCommandByte['movePlaten'], data)
+
+	def movePlatenNumLines(self, lines):
+		self.movePlaten(self.lineSpaceSingle * lines * self.lineSpacing)
 
 	def queryModel(self):
 		return self._sendCommand(self.wwCommandByte['queryModel'])
@@ -268,9 +402,21 @@ class WheelwriterClient(object):
 	def queryPrintwheel(self):
 		return self._sendCommand(self.wwCommandByte['queryPrintwheel'])
 
+	def reset(self):
+		self._sendCommand(self.wwCommandByte['reset'])
+
+	def spinWheel(self):
+		self._sendCommand(self.wwCommandByte['spinWheel'])
+
 	def type(self, wheelPosition, advanceUsteps=None, style=None):
-		if style == 'normal' or style is None:
+		if style is None:
+			style = 'normal'
+
+		if advanceUsteps is None:
+			advanceUsteps = self.charSpace
+		if style == 'normal':
 			self._sendCommand(self.wwCommandByte['typeAndAdvance'], [wheelPosition, advanceUsteps])
+			self.carriagePosition += advanceUsteps
 		else:
 			self.typeInPlace(wheelPosition, style)
 			if 'bold' in style:
@@ -278,14 +424,62 @@ class WheelwriterClient(object):
 			self.moveCarriage(advanceUsteps)
 
 	def typeInPlace(self, wheelPosition, style=None):
-		if wheelPosition != self.underscorePosition:
+		if style is None:
+			style = 'normal'
+
+		if wheelPosition != self.wwUnderscorePosition:
 			self._sendCommand(self.wwCommandByte['type'], wheelPosition)
 
 		if 'underline' in style:
-			self._sendCommand(self.wwCommandByte['type'], self.underscorePosition)
+			self._sendCommand(self.wwCommandByte['type'], self.wwUnderscorePosition)
 		if 'bold' in style:
 			self.moveCarriage(1)
 			self._sendCommand(self.wwCommandByte['type'], wheelPosition)
+
+	def typeCharacter(self, character, advanceUsteps=None, keyboard=None, style=None):
+		position = self.wheelPosition(character, keyboard)
+		self.type(position, advanceUsteps, style)
+
+	def typeCharacterInPlace(self, character, keyboard=None, style=None):
+		position = self.wheelPosition(character, keyboard)
+		self.typeInPlace(position, style)
+
+	def typeMultiple(self, wheelPositions, advanceUsteps=None, style=None):
+		if advanceUsteps is None:
+			advanceUsteps = self.charSpace
+
+		for wheelPosition in wheelPositions:
+			self.type(wheelPosition, advanceUsteps, style)
+
+	def wheelPosition(self, character, keyboard=None):
+		if keyboard is None:
+			keyboard = self.keyboard
+
+		return self.ascii2Wheel[self.keyboardByte[keyboard]][ord(character)]
+
+	def setLeftMargin(self):
+		self.carriagePosition = 0
+
+	def setCharSpaceForWheel(self, wheelByte=None):
+		if wheelByte is None:
+			wheelByte = self.queryPrintwheel()
+
+		if wheelByte == self.wwPrintWheelByte['10 cpi']:
+			self.lineSpaceSingle = 16
+			self.charSpace = 12
+		elif wheelByte == self.wwPrintWheelByte['12 cpi']:
+			self.lineSpaceSingle = 16
+			self.charSpace = 10
+
+	def setKeyboard(self, keyboard):
+		if keyboard not in self.keyboardByte.keys():
+			raise ValueError(f'Unknown keyboard: {keyboard}!')
+		self.keyboard = keyboard
+
+	def setLineSpacing(self, spacing):
+		if spacing not in [1, 1.5, 2, 3]:
+			raise ValueError('Invalid line spacing value!')
+		self.lineSpacing = spacing
 
 	def _sendCommand(self, command, data=None):
 		return self.sender.sendCommand(None, command, data)
