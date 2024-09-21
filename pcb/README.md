@@ -15,8 +15,9 @@ to be a fabricated PCB and be the same size as the original Wheelwriter
 expansion boards, fit in the original expansion housing, and connect to the 
 Wheelwriter expansion interface connector via a cable. This design has and 
 isolated power supply and bus interface and is powered by the typewriter 
-instead of the Arduino's USB port. *As of 2024-09-21, this v2 design has been 
-fabbed but not assembled, nor tested!*
+instead of the Arduino's USB port. 
+
+*As of 2024-09-21, this v2 design has been fabbed but not assembled, nor tested!*
 
 ### Expansion cable
 The expansion port on the Wheelwriter is a Molex SL series 10-pin shrouded 
@@ -31,6 +32,7 @@ rest are only for testing.
 ![image](WheelwriterExpansionHousingExterior.jpg)
 ![image](WheelwriterExpansionHousingInterior.jpg)
 
-## Original Wheelwriter expansion board
+## Reference
+### Original Wheelwriter expansion board
 Image of the back of the board
 ![image](Wheelwriter-1317518-back-300dpi.jpg)
