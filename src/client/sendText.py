@@ -4,7 +4,7 @@ import serial
 import time
 import sys
 
-# from wheelwriterClient import WheelwriterClient, WWTypeMode
+from wheelwriterClient import WheelwriterInterface, WWTypeMode
 
 if __name__=='__main__':
 	import argparse
@@ -16,62 +16,6 @@ if __name__=='__main__':
 	parser.add_argument('--noPrintableEscape', action='store_true', help='Do not allow printable escape sequence ^[, binary only')
 	args = parser.parse_args()
 
-	# with WheelwriterClient(args.device) as client:
-	# 	with WWTypeMode(client) as typeMode:
-	# 		typeMode.sendTextFile(args.file, endLines=args.endlines)
-
-	# sys.exit()
-
-	infile = open(args.file, 'rt')
-	textLines = infile.readlines()
-
-	retryCounter = 0
-	characterCounter = 0
-	with serial.Serial(args.device, 115200, xonxoff=True) as ser:
-		while True:
-			print('\n*** Sending "\\n" ***')
-			ser.write('\n'.encode());
-			
-			line = ser.readline().decode().strip()
-			print(line)
-
-			if line.startswith('###'):
-				line = ser.readline().decode().strip()
-				print(line)
-
-			if line == '[READY]':
-				break
-
-			retryCounter += 1
-			if retryCounter >= 5:
-				print('\nERROR - Failed to connect!')
-				sys.exit(1)
-			time.sleep(1)
-
-		print('\n*** Switching to type mode ***')
-		commandString = f'type {args.keyboard} {int(not args.noPrintableEscape)}'
-		print(f'{commandString}\n')
-		ser.write(f'{commandString}\n'.encode())
-
-		while True:
-			line = ser.readline().decode().strip()
-			print(line)
-			if line == '[BEGIN]':
-				break
-
-		for textLine in textLines:
-			for char in textLine:
-				ser.write(char.encode())
-				time.sleep(0.05)
-				characterCounter += 1
-
-		for i in range(args.endlines):
-			ser.write('\n'.encode())
-			time.sleep(0.05)
-
-		print('\n*** Exiting type mode ***')
-		ser.write(b'\x04')
-		line = ser.readline().decode().strip()
-		print(line)
-
-	print(f'\n*** Sent {characterCounter} characters ***')
+	with WheelwriterInterface(args.device) as interface:
+		with WWTypeMode(interface) as typeMode:
+			typeMode.sendTextFile(args.file, endLines=args.endlines)
