@@ -367,7 +367,7 @@ class WheelwriterClient(object):
 		self.movePlaten(usteps)
 
 	def moveCarriage(self, usteps):
-		numSteps = abs(usteps)
+		numSteps = int(abs(usteps))
 		numSteps = min(numSteps, 0x7fff)  # 11-bit value
 		direction = 'left' if usteps < 0 else 'right'
 
@@ -385,7 +385,7 @@ class WheelwriterClient(object):
 		self.moveCarriage(self.charSpace * spaces)
 
 	def movePlaten(self, usteps):
-		numSteps = abs(usteps)
+		numSteps = int(abs(usteps))
 		numSteps = min(numSteps, 0x7f) # 7-bit value
 		direction = 'down' if usteps < 0 else 'up'
 

@@ -9,45 +9,64 @@ import numpy as np
 
 from wheelwriterClient import WheelwriterClient, WheelwriterInterface, WWRelayMode
 
+def printLine(client, line):
+	tokens = line.strip().split(',')
+	positions = [int(t) for t in tokens]
+
+	for position in positions:
+		if position == -1:
+			client.moveCarriageNumSpaces(1)
+		elif position < 96:
+			client.type(position+1)
+		else:
+			client.type((position % 96)+1, style='bold')
+
+	client.carriageReturn()
+				
 if __name__=='__main__':
 	import argparse
 	parser = argparse.ArgumentParser()
 	parser.add_argument('input', help='Text file of wheel positions to print')
+	parser.add_argument('--interleave', help='Text file of wheel positions to print, interleaved')
 	parser.add_argument('--device', '-d', required=True, help='Serial port to connect to')
 	args = parser.parse_args()
 
 	with open(args.input, 'rt') as f:
-		with WheelwriterInterface(args.device) as interface:
-			with WWRelayMode(interface) as relay:
+		lines = f.readlines()
 
-				client = WheelwriterClient(relay)
+	if args.interleave:
+		with open(args.interleave, 'rt') as f:
+			lines2 = f.readlines()
+	else:
+		lines2 = []
 
-				print('\nQuery model')
-				model = client.queryModel()
-				print(f'Model: 0x{model:02x}')
+	with WheelwriterInterface(args.device) as interface:
+		with WWRelayMode(interface) as relay:
 
-				print('\nQuery printwheel')
-				wheel = client.queryPrintwheel()
-				print(f'Wheel: 0x{wheel:02x}')
+			client = WheelwriterClient(relay)
 
-				client.setCharSpaceForWheel(wheel)
+			print('\nQuery model')
+			model = client.queryModel()
+			print(f'Model: 0x{model:02x}')
 
-				client.setKeyboard('us')
+			print('\nQuery printwheel')
+			wheel = client.queryPrintwheel()
+			print(f'Wheel: 0x{wheel:02x}')
 
-				client.setLeftMargin();
+			client.setCharSpaceForWheel(wheel)
 
-				for line in f:
-					tokens = line.strip().split(',')
-					positions = [int(t) for t in tokens]
+			client.setKeyboard('us')
 
-					for position in positions:
-						if position == -1:
-							client.moveCarriageNumSpaces(1)
-						elif position < 96:
-							client.type(position+1)
-						else:
-							client.type((position % 96)+1, style='bold')
+			client.setLeftMargin();
 
-					client.carriageReturn()
+			for i, line in enumerate(lines):
+				printLine(client, line)
+
+				try:
+					line2 = lines2[i]
+					client.movePlatenNumLines(0.5)
+					client.moveCarriageNumSpaces(0.5)
+					printLine(client, line2)
+					client.movePlatenNumLines(0.5)
+				except IndexError:
 					client.movePlatenNumLines(1)
-
