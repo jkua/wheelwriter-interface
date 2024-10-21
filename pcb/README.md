@@ -17,7 +17,8 @@ Wheelwriter expansion interface connector via a cable. This design has and
 isolated power supply and bus interface and is powered by the typewriter 
 instead of the Arduino's USB port. 
 
-*As of 2024-09-21, this v2 design has been fabbed but not assembled, nor tested!*
+*While I have not tested this design, [BlipRanger](https://github.com/BlipRanger)
+has [reported success](https://github.com/jkua/wheelwriter-interface/issues/2#issuecomment-2415313493)!*
 
 ### Expansion cable
 The expansion port on the Wheelwriter is a Molex SL series 10-pin shrouded 
