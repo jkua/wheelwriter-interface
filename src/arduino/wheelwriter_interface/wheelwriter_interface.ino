@@ -1,9 +1,15 @@
 // Wheelwriter interface for an Arduino Nano RP2040 Connect
 // Copyright (c) 2023 John Kua <john@kua.fm>
 //
+
+// #include <FlashIAPBlockDevice.h>
+// #include "FlashIAPManager.h"
+#include "ParameterStorage.h"
+
 #include "uart_9bit/Uart9bit.h"
 #include "Wheelwriter.h"
 
+ParameterStorage parameterStorage;
 Uart9Bit uart;
 wheelwriter::Wheelwriter typewriter;
 int inByte = 0;
@@ -29,15 +35,19 @@ void setup() {
 
   // USB Serial
   Serial.begin(115200);
+
+  while (!Serial);
+  Serial.write("\n");
+  Serial.println("#############################");
+  Serial.println("### Wheelwriter Interface ###");
+  Serial.println("#############################");
+
+  parameterStorage.printBlockDeviceInfo();
+  parameterStorage.loadParametersFromFlash();  
+  Serial.write("\n");
 }
 
 void loop() {
-  // char hexString[7] = "0x0000";
-  // uint16_t inWord = uart.read();
-  // sprintf(hexString, "0x%02X", inWord);
-  // Serial.println(hexString);
-
-  Serial.write("\n### Wheelwriter Interface ###\n");
   Serial.write("[READY]\n");
 
   while (Serial.available() == 0) {
