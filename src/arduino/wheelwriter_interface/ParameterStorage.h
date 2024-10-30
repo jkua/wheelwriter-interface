@@ -31,6 +31,7 @@ public:
   int deleteParameter(const std::string& key);
   int loadParametersFromFlash();
   int storeParametersToFlash(bool force=false, bool dryRun=false);
+  int printParameters(bool hidePasswords=true);
   void printBlockDeviceInfo();
 
 private:

@@ -2,18 +2,20 @@
 // Copyright (c) 2023 John Kua <john@kua.fm>
 //
 
-// #include <FlashIAPBlockDevice.h>
-// #include "FlashIAPManager.h"
+#include <WiFiNINA.h>
 #include "ParameterStorage.h"
 
 #include "uart_9bit/Uart9bit.h"
 #include "Wheelwriter.h"
+#include "WheelwriterRestApi.h"
 
+WiFiServer webServer(80);
 ParameterStorage parameterStorage;
 Uart9Bit uart;
 wheelwriter::Wheelwriter typewriter;
+WheelwriterRestApi restApi(webServer, typewriter);
 int inByte = 0;
-char inputBuffer[64];
+char inputBuffer[65];
 
 void setup() {
   gpio_set_drive_strength(25, GPIO_DRIVE_STRENGTH_12MA);
@@ -44,20 +46,35 @@ void setup() {
 
   parameterStorage.printBlockDeviceInfo();
   parameterStorage.loadParametersFromFlash();  
+  parameterStorage.printParameters();
   Serial.write("\n");
+
+  restApi.init();
+
+  std::string ssid;
+  std::string password;
+  if (parameterStorage.readParameter("WIFI_SSID", ssid) && 
+      parameterStorage.readParameter("WIFI_PASSWORD", password)) {
+    Serial.write("--> Connecting to WiFi...\n");
+    restApi.connect(ssid.c_str(), password.c_str());
+  }
+  else {
+    Serial.write("--> No WiFi credentials found in flash\n");
+  }
 }
 
 void loop() {
   Serial.write("[READY]\n");
 
   while (Serial.available() == 0) {
+    restApi.processClient();
     delay(100);
   }
 
   if (Serial.available() > 0) {
     String inString = Serial.readStringUntil('\n');
     inString.toLowerCase();
-    inString.toCharArray(inputBuffer, 64);
+    inString.toCharArray(inputBuffer, 65);
 
     const char delim[2] = " ";
     char* token = strtok(inputBuffer, delim);
@@ -79,6 +96,7 @@ void loop() {
       Serial.write("relay - relay bus commands\n");
       Serial.write("sample - print a type sample\n");
       Serial.write("type - type characters on the typewriter\n");
+      Serial.write("wifi - set up WiFi\n");
     }
     else if (strcmp(token, "buffer") == 0) {
       uint16_t numChars = 10;
@@ -236,6 +254,33 @@ void loop() {
       Serial.println(useCaratAsControl);
       typeFunction(keyboard, useCaratAsControl);
     }
+    else if (strcmp(token, "wifi") == 0) {
+      Serial.write("[FUNCTION] Configure wifi\n");
+      char* ssid = (char*)malloc(65);
+      char* password = (char*)malloc(65);
+      if (connectWifi(ssid, password)) {
+        while (true) {
+          Serial.print("Write credentials to flash? (y/n) ");
+          while (true) {
+            if (Serial.available()) {
+              inString = Serial.readStringUntil('\n');
+              Serial.write('\n');
+              break;
+            }
+          }
+          inString.toLowerCase();
+          if (inString[0] == 'y') {
+            parameterStorage.writeParameter("WIFI_SSID", ssid);
+            parameterStorage.writeParameter("WIFI_PASSWORD", password);
+            parameterStorage.storeParametersToFlash();
+            break;
+          }
+          else if (inString[0] == 'n') {
+            break;
+          }
+        }
+      }
+    }
     else {
       Serial.write("[UNKNOWN FUNCTION] Enter 'help' to see a list of available commands\n");
     }
@@ -347,7 +392,7 @@ void keyboardFunction(uint8_t verbose) {
     if (Serial.available()) {
       String inString = Serial.readStringUntil('\n');
       inString.toLowerCase();
-      inString.toCharArray(inputBuffer, 64);
+      inString.toCharArray(inputBuffer, 65);
 
       // End with 'q' or EOT (CTRL-D)
       if ((strlen(inputBuffer) == 1) && ((inputBuffer[0] == 'q') || (inputBuffer[0] == 0x04))) {
@@ -524,7 +569,7 @@ void rawCommandFunction() {
     if (Serial.available()) {
       String inString = Serial.readStringUntil('\n');
       inString.toLowerCase();
-      inString.toCharArray(inputBuffer, 64);
+      inString.toCharArray(inputBuffer, 65);
 
       // End with 'q' or EOT (CTRL-D)
       if ((strlen(inputBuffer) == 1) && ((inputBuffer[0] == 'q') || (inputBuffer[0] == 0x04))) {
@@ -579,7 +624,7 @@ void readFunction() {
     if (Serial.available()) {
       String inString = Serial.readStringUntil('\n');
       inString.toLowerCase();
-      inString.toCharArray(inputBuffer, 64);
+      inString.toCharArray(inputBuffer, 65);
 
       // End with 'q' or EOT (CTRL-D)
       if ((strlen(inputBuffer) == 1) && ((inputBuffer[0] == 'q') || (inputBuffer[0] == 0x04))) {
@@ -867,4 +912,76 @@ void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, wheel
       }
     }
   }
+}
+
+int connectWifi(char* ssid, char* password) {
+  int numSsid = restApi.listNetworks();
+  if (numSsid) {
+    String inString;
+    while (true) {
+      Serial.write("Select network by number, -1 to manually enter SSID, or press Enter to cancel: ");
+      while (true) {
+        if (Serial.available()) {
+          inString = Serial.readStringUntil('\n');
+          Serial.write('\n');
+          break;
+        }
+      }
+      if (inString.length() == 0) {
+        return 0;
+      }
+      int network = inString.toInt();
+      if (((network == 0) && (inString[0] != '0')) || (network >= numSsid)) {
+        Serial.write("Invalid network number!\n");
+        continue;
+      }
+      if (network >= 0) {
+        strcpy(ssid, WiFi.SSID(network));
+        return connectWifiSsid(ssid, password);
+      }
+    }
+  }
+  else if (numSsid < 0) {
+    return 0;
+  } 
+  
+  while (true) {
+    Serial.write("Manually enter SSID or press Enter to cancel: ");
+    String inString;
+    while (true) {  
+      if (Serial.available()) {
+        inString = Serial.readStringUntil('\n');
+        Serial.write('\n');
+        break;
+      }
+    }
+    if (inString.length() == 0) {
+      return 0;
+    }
+    inString.toCharArray(ssid, 65);
+    return connectWifiSsid(ssid, password);
+  }
+}
+
+int connectWifiSsid(const char* ssid, char* password) {
+  while (true) {
+    Serial.write("Enter password or press Enter to cancel: ");
+    String inString;
+    while (true) { 
+      if (Serial.available()) {
+        inString = Serial.readStringUntil('\n');
+        Serial.write('\n');
+        break;
+      }
+    }
+    if (inString.length() == 0) {
+      return 0;
+    }
+    inString.toCharArray(password, 65);
+    if (restApi.connect(ssid, password)) {
+      return 1;
+    }
+  }
+  
+
 }

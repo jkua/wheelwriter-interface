@@ -63,7 +63,6 @@ int ParameterStorage::loadParametersFromFlash() {
     flashManager_.readBlock((2*i+2)*storageBlockLength_, storageBlockLength_);
     std::string value(flashManager_.data());
     parameters_[key] = value;
-    Serial.println("    " + String(i) + ") " + key.c_str() + ", " + value.c_str());
   }
 
   flashManager_.readBlock((2*numParams+1)*storageBlockLength_, storageBlockLength_);
@@ -118,4 +117,17 @@ int ParameterStorage::storeParametersToFlash(bool force, bool dryRun) {
 
   delete[] buffer;
   return 1;
+}
+
+int ParameterStorage::printParameters(bool hidePasswords) {
+  int paramIdx = 0;
+  for (auto const& x : parameters_) {
+    if (hidePasswords && x.first.find("PASSWORD") != std::string::npos) {
+      Serial.println("    " + String(paramIdx) + ") " + x.first.c_str() + ", ********");
+    }
+    else {
+      Serial.println("    " + String(paramIdx) + ") " + x.first.c_str() + ", " + x.second.c_str());
+    }
+    paramIdx++;
+  }
 }
