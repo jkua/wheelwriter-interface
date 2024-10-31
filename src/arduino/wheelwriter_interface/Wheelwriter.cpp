@@ -96,17 +96,17 @@ uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data
 	return uart_->read();
 }
 uint8_t Wheelwriter::sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t* error, int ignoreErrors) {
-    *error = 0;
+		*error = 0;
 
-    // Check if command is valid
-    if (command > WW_MAX_VALID_COMMAND) {
-    	*error = 0x13;
-    	return command;
-    }
+		// Check if command is valid
+		if (command > WW_MAX_VALID_COMMAND) {
+			*error = 0x13;
+			return command;
+		}
 
-    uint8_t commandLength = ww_command_length[command];
+		uint8_t commandLength = ww_command_length[command];
 
-    bufferOut_[0] = address + 0x100;
+		bufferOut_[0] = address + 0x100;
 	bufferOut_[1] = command;
 	bufferOut_[2] = data1;
 	bufferOut_[3] = data2;
@@ -486,24 +486,7 @@ void Wheelwriter::carriageReturn() {
 	horizontalMicrospaces_ = 0;
 }
 void Wheelwriter::lineFeed(ww_platen_direction direction) {
-	uint8_t usteps;
-	switch (lineSpacing_) {
-		case LINESPACING_ONE:
-			usteps = lineSpace_;
-			break;
-		case LINESPACING_ONE_POINT_FIVE:
-			usteps = lineSpace_ + lineSpace_ / 2;
-			break;
-		case LINESPACING_TWO:
-			usteps = lineSpace_ * 2;
-			break;
-		case LINESPACING_THREE:
-			usteps = lineSpace_ * 3;
-			break;
-		default:
-			usteps = lineSpace_;
-	}
-	movePlaten(usteps, direction);
+	movePlaten(lineSpace_, direction);
 }
 void Wheelwriter::spinWheel() {
 	sendCommand(SPIN_WHEEL);
@@ -533,4 +516,162 @@ uint8_t Wheelwriter::getDefaultAddress() {
 // Set the default address
 void Wheelwriter::setDefaultAddress(uint8_t address) {
 	defaultAddress_ = address;
+}
+// 
+void Wheelwriter::bufferTest(uint16_t numChars, uint8_t charsPerLine) {
+	char buffer[] = "123456789.";
+	uint8_t index = 0;
+	uint8_t bufferSize = strlen(buffer);
+	uint16_t charsTyped = 0;
+
+	this->readFlush();
+	this->setSpaceForWheel();
+	this->setLeftMargin();
+
+	while (charsTyped < numChars) {
+		index = index % bufferSize;
+		this->typeAscii(buffer[index]);
+		charsTyped++;
+		index++;
+		if ((charsTyped % charsPerLine) == 0) {
+			this->carriageReturn();
+			this->lineFeed();
+		}
+	}
+	if (charsTyped % charsPerLine) {
+		this->carriageReturn();
+		this->lineFeed();
+	}
+}
+
+// =================
+// Wheelwriter::TypeStream class
+// =================
+
+int Wheelwriter::TypeStream::type(char inByte) {
+	switch (state_) {
+		case NORMAL: {
+			// Control sequence start - ^
+			if (useCaratAsControl_ && inByte == '^') {
+				buffer_ += inByte;
+				state_ = CARAT;
+			}
+			// EOT (CTRL-D)
+			else if (inByte == 0x04) {
+				reset();
+				return 0;
+			}
+			// New line
+			else if (inByte == 0x0a) {
+				typewriter_.carriageReturn();
+				typewriter_.lineFeed();
+			}
+			// Escape character
+			else if (inByte == 0x1b) {
+				buffer_ += inByte;
+				state_ = ESCAPE;
+			}
+			else {
+				typewriter_.typeAscii(inByte, typestyle_);
+			}
+			break;
+		}
+		case CARAT: {
+			// EOT - ^D
+			if ((inByte == 'd') || (inByte == 'D')) {
+				reset();
+				return 0;
+			}
+			// ANSI escape sequence - ^[
+			else if (inByte == '[') {
+				buffer_ += inByte;
+				state_ = ESCAPE;
+			}
+			// Invalid control sequnece
+			else {
+				flushBuffer();
+				typewriter_.typeAscii(inByte, typestyle_);
+				state_ = NORMAL;
+			}
+			break;
+		}
+		case ESCAPE: {
+			// ANSI escape sequence - ^[ <value> m
+			if (inByte == 'm') {
+				parseEscape(buffer_, typestyle_, lineSpacing_);
+				typewriter_.setLineSpacing(lineSpacing_);
+				buffer_.clear();
+				state_ = NORMAL;
+			}
+			// Invalid ANSI escape sequence
+			else if (isalpha(inByte) || (buffer_.size()-digitOffset(buffer_)) > 3) {
+				flushBuffer();
+				state_ = NORMAL;
+			}
+			else {
+				buffer_ += inByte;
+			}
+			break;
+		}
+	}
+	return state_;
+}
+void Wheelwriter::TypeStream::parseEscape(const std::string& buffer, wheelwriter::ww_typestyle& typestyle, wheelwriter::ww_linespacing& lineSpacing) {
+	size_t offset = digitOffset(buffer);
+
+	const char* start = buffer.c_str()+offset;
+  char* end;
+  long value = strtol(start, &end, 10);
+  if (end != start) {
+    switch (value) {
+      case 0:  // Normal
+        typestyle = wheelwriter::TYPESTYLE_NORMAL;
+        lineSpacing = wheelwriter::LINESPACING_ONE;
+        break;
+      case 1:  // Bold
+        typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle | (uint8_t)wheelwriter::TYPESTYLE_BOLD);
+        break;
+      case 4:  // Underline
+        typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle | (uint8_t)wheelwriter::TYPESTYLE_UNDERLINE);
+        break;
+      case 10: // Single space
+        lineSpacing = wheelwriter::LINESPACING_ONE;
+        break;
+      case 11: // 1.5 space
+        lineSpacing = wheelwriter::LINESPACING_ONE_POINT_FIVE;
+        break;
+      case 12: // Double space
+        lineSpacing = wheelwriter::LINESPACING_TWO;
+        break;
+      case 13: // Triple space
+        lineSpacing = wheelwriter::LINESPACING_THREE;
+        break;
+      case 22: // Not bold
+        typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle & 0xf0);
+        break;
+      case 24: // Not underlined
+        typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle & 0x0f);
+        break;
+    }
+  }
+}
+size_t Wheelwriter::TypeStream::digitOffset(const std::string& buffer) {
+	for (size_t i = 0; i < buffer.size(); i++) {
+		if (isdigit(buffer[i])) {
+			return i;
+		}
+	}
+	return buffer.size();
+}
+void Wheelwriter::TypeStream::flushBuffer() {
+	for (char c : buffer_) {
+		typewriter_.typeAscii(c, typestyle_);
+	}
+	buffer_.clear();
+}
+void Wheelwriter::TypeStream::reset() {
+	buffer_.clear();
+	typestyle_ = TYPESTYLE_NORMAL; 
+	lineSpacing_ = LINESPACING_ONE;
+	state_ = NORMAL;
 }

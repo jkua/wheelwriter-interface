@@ -258,14 +258,14 @@ int PicoRestApi::processClient() {
   WiFiClient client = server_.available();
 
   if (client) {
-    Serial.println("\n*** New client\n");
+    Serial.println("\n*** New WiFi client\n");
     HttpRequest request;
 
     // Read the request from the client
     while (client.connected()) {
       if (client.available()) {
         char c = client.read();
-        Serial.write(c);
+        // Serial.write(c);
         request.parseChar(c);
         if (request.parseState == HttpRequest::DONE) {
           break;
@@ -318,7 +318,8 @@ int PicoRestApi::processClient() {
     client.stop();
     Serial.println("\nClient disconnected.");
     return 1;
-  }  
+  }
+  return 0;
 }
 void PicoRestApi::handleGetRequest(WiFiClient& client, HttpRequest& request) {
   if (request.path == "/") {

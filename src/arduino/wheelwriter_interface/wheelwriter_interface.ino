@@ -38,7 +38,11 @@ void setup() {
   // USB Serial
   Serial.begin(115200);
 
-  while (!Serial);
+  // Wait up to one second for serial port to connect
+  int count = 1000;
+  while (!Serial && count--) {
+    delay(1);
+  }
   Serial.write("\n");
   Serial.println("#############################");
   Serial.println("### Wheelwriter Interface ###");
@@ -123,7 +127,7 @@ void loop() {
       Serial.print(numChars);
       Serial.write(", Characters Per Line: ");
       Serial.println(charsPerLine);
-      bufferTest(numChars, charsPerLine);
+      typewriter.bufferTest(numChars, charsPerLine);
     }
     else if (strcmp(token, "char") == 0) {
       uint8_t typestyle = wheelwriter::TYPESTYLE_NORMAL;
@@ -312,32 +316,6 @@ void loop() {
     // delay(500);
     // typewriter.typeCharacter(0x05, 10);
     // delay(500);
-  }
-}
-
-void bufferTest(uint16_t numChars, uint8_t charsPerLine) {
-  char buffer[] = "123456789.";
-  uint8_t index = 0;
-  uint8_t bufferSize = strlen(buffer);
-  uint16_t charsTyped = 0;
-
-  typewriter.readFlush();
-  typewriter.setSpaceForWheel();
-  typewriter.setLeftMargin();
-
-  while (charsTyped < numChars) {
-    index = index % bufferSize;
-    typewriter.typeAscii(buffer[index]);
-    charsTyped++;
-    index++;
-    if ((charsTyped % charsPerLine) == 0) {
-      typewriter.carriageReturn();
-      typewriter.lineFeed();
-    }
-  }
-  if (charsTyped % charsPerLine) {
-    typewriter.carriageReturn();
-    typewriter.lineFeed();
   }
 }
 
@@ -808,17 +786,16 @@ void sendTimeoutResponse(unsigned char commandByte) {
 }
 
 void typeFunction(uint8_t keyboard, uint8_t useCaratAsControl) {
-  uint8_t USE_CARAT_AS_CONTROL = useCaratAsControl;
-  wheelwriter::ww_linespacing lineSpacing;
-  uint8_t caratFlag = 0;
   uint8_t bytesAvailable = 0;
   uint8_t paused = false;
-  wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
 
   typewriter.readFlush();
   typewriter.setSpaceForWheel();
   typewriter.setKeyboard(keyboard);
   typewriter.setLeftMargin();
+
+  typewriter.typeStream.reset();
+  typewriter.typeStream.setUseCaratAsControl(useCaratAsControl);
 
   Serial.write("[BEGIN]\n");
 
@@ -837,81 +814,13 @@ void typeFunction(uint8_t keyboard, uint8_t useCaratAsControl) {
 
     if (bytesAvailable) {
       char inByte = Serial.read();
-      // End when receiving EOT (CTRL-D) or the string "^D"
-      if ((inByte == 0x04) || (caratFlag && ((inByte == 'd') || (inByte == 'D')))) {
-        while (Serial.available()) {
-          Serial.read();
-        }
+      if (!(typewriter.typeStream << inByte)) {
         break;
-      }
-      // ANSI escape code - CSI (Control Sequence Introducer) with SGR (Select Graphic Rendition) parameter
-      // ^[ [ <value> m
-      else if ((inByte == 0x1b) || (caratFlag && (inByte == '['))) {
-        String inString = Serial.readStringUntil('m');
-        parseEscape(inString.c_str(), typestyle, lineSpacing);
-        typewriter.setLineSpacing(lineSpacing);
-      }
-      // New line
-      else if (inByte == 0x0a) {
-        typewriter.carriageReturn();
-        typewriter.lineFeed();
-      }
-      // Carat may be used as a special symbol for control characters (^D, ^[)
-      else if (USE_CARAT_AS_CONTROL && (inByte == '^')) {
-        caratFlag = 1;
-      }
-      // Print the character
-      else {
-        // Serial.print(inByte);
-        typewriter.typeAscii(inByte, typestyle);
-      }
-      
-      if (caratFlag && (inByte != '^')) {
-        caratFlag = 0;
       }
     }
   }
 
   Serial.write("\n[END]\n");
-}
-
-void parseEscape(const char* buffer, wheelwriter::ww_typestyle& typestyle, wheelwriter::ww_linespacing& lineSpacing) {
-  if (buffer[0] == '[') {
-    char* end;
-    long value = strtol(buffer+1, &end, 10);
-    if (end != buffer+1) {
-      switch (value) {
-        case 0:  // Normal
-          typestyle = wheelwriter::TYPESTYLE_NORMAL;
-          lineSpacing = wheelwriter::LINESPACING_ONE;
-          break;
-        case 1:  // Bold
-          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle | (uint8_t)wheelwriter::TYPESTYLE_BOLD);
-          break;
-        case 4:  // Underline
-          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle | (uint8_t)wheelwriter::TYPESTYLE_UNDERLINE);
-          break;
-        case 10: // Single space
-          lineSpacing = wheelwriter::LINESPACING_ONE;
-          break;
-        case 11: // 1.5 space
-          lineSpacing = wheelwriter::LINESPACING_ONE_POINT_FIVE;
-          break;
-        case 12: // Double space
-          lineSpacing = wheelwriter::LINESPACING_TWO;
-          break;
-        case 13: // Triple space
-          lineSpacing = wheelwriter::LINESPACING_THREE;
-          break;
-        case 22: // Not bold
-          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle & 0xf0);
-          break;
-        case 24: // Not underlined
-          typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle & 0x0f);
-          break;
-      }
-    }
-  }
 }
 
 int connectWifi(char* ssid, char* password) {

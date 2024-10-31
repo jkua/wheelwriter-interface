@@ -13,15 +13,24 @@ public:
   WheelwriterRestApi(WiFiServer& server, wheelwriter::Wheelwriter& typewriter) : PicoRest::PicoRestApi(server), typewriter_(typewriter) {}
   void handlePostRequest(WiFiClient& client, PicoRest::HttpRequest& request) override {
     if (request.path == "/type") {
+      typewriter_.readFlush();
+      typewriter_.setSpaceForWheel();
+      // typewriter_.setKeyboard(keyboard);
+      typewriter_.setLeftMargin();
+
+      typewriter_.typeStream.reset();
+      typewriter_.typeStream.setUseCaratAsControl(true);
+
       for (int i = 0; i < request.content.length(); i++) {
-        if (request.content[i] == 0x0a) {
-          typewriter_.carriageReturn();
-          typewriter_.lineFeed();
-        }
-        else {
-          typewriter_.typeAscii(request.content[i]);
+        if (!(typewriter_.typeStream << request.content[i])) {
+          break;
         }
       }
+      sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::OK);
+    }
+    else if (request.path == "/bufferTest") {
+      typewriter_.bufferTest(10, 80);
+      sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::OK);
     }
     else {
       sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::NOT_FOUND);
