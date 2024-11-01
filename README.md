@@ -24,9 +24,9 @@ communicates with the Wheelwriter over the serial bus and provide low-level
 control of the typewriter, including platen and carriage positioning and 
 typehead imprinting.
 
-4. REST service - the built-in WiFi connectivity on the Nano supports a REST 
-server which allows a modern computer, smartphone, or tablet to control the
-typewriter via the interface module. *This does not exist today, but watch this space!*
+4. [REST API](docs/wwib_rest_api.md) service - the built-in WiFi connectivity 
+on the Nano supports a web server which allows a modern computer, smartphone, 
+or tablet to control the typewriter via the interface module.
 
 5. [Python serial client](src/client) - PC client to talk to the Arduino and
 allow it to send text to print as well as relay raw Wheelwriter commands. 
