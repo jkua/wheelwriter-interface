@@ -194,15 +194,14 @@ int PicoRestApi::listNetworks() {
 
   // print the network number and name for each network found:
   for (int thisNet = 0; thisNet < numSsid; thisNet++) {
-    Serial.print(thisNet);
-    Serial.print(") ");
-    Serial.print(WiFi.SSID(thisNet));
-    Serial.print("\t\t\tSignal: ");
-    Serial.print(WiFi.RSSI(thisNet));
-    Serial.print(" dBm");
-    Serial.print("\tChannel: ");
-    Serial.print(WiFi.channel(thisNet));
-    Serial.print("\tEncryption: ");
+    char buffer[256];
+    sprintf(buffer, "%2d) %-32s | Signal: %4d dBm | Channel: %2d | Encryption: ", 
+            thisNet,
+            WiFi.SSID(thisNet),
+            WiFi.RSSI(thisNet),
+            WiFi.channel(thisNet)
+            );
+    Serial.print(buffer);
     byte encryption = WiFi.encryptionType(thisNet);
     switch (encryption) {
       case ENC_TYPE_TKIP: {

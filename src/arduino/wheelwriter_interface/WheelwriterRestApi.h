@@ -7,12 +7,50 @@
 
 #include "PicoRest.h"
 #include "Wheelwriter.h"
+#include "utility.h"
+
 
 class WheelwriterRestApi : public PicoRest::PicoRestApi {
 public:
   WheelwriterRestApi(WiFiServer& server, wheelwriter::Wheelwriter& typewriter) : PicoRest::PicoRestApi(server), typewriter_(typewriter) {}
   void handlePostRequest(WiFiClient& client, PicoRest::HttpRequest& request) override {
-    if (request.path == "/type") {
+    if (request.path == "/bufferTest") {
+      ParameterString parameters(request.content);
+      uint16_t numChars = parameters.getParameterInt(0, 10);
+      uint8_t charsPerLine = parameters.getParameterInt(1, 80);
+      typewriter_.bufferTest(numChars, charsPerLine);
+      sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::OK);
+    }
+    else if (request.path == "/characterTest") {
+      wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
+      if (request.content == "bold") {
+        typestyle = wheelwriter::TYPESTYLE_BOLD;
+      }
+      else if (request.content == "underline") {
+        typestyle = wheelwriter::TYPESTYLE_UNDERLINE;
+      }
+      typewriter_.characterTest(typestyle);
+      sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::OK);
+    }
+    else if (request.path == "/circleTest") {
+      typewriter_.circleTest();
+      sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::OK);
+    }
+    else if (request.path == "/printwheelSample") {
+      ParameterString parameters(request.content);
+      uint8_t plusPosition = parameters.getParameterInt(0, 0x3b);
+      uint8_t underscorePosition = parameters.getParameterInt(1, 0x4f);
+      typewriter_.printwheelSample(plusPosition, underscorePosition);
+      sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::OK);
+    }
+    else if (request.path == "/query") {
+      std::string json;
+      typewriter_.queryToJson(json);
+      PicoRest::HttpResponse response(PicoRest::HttpResponse::StatusCode::OK);
+      client.println(response.header().c_str());
+      client.println(json.c_str());
+    }
+    else if (request.path == "/type") {
       typewriter_.readFlush();
       typewriter_.setSpaceForWheel();
       // typewriter_.setKeyboard(keyboard);
@@ -26,10 +64,6 @@ public:
           break;
         }
       }
-      sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::OK);
-    }
-    else if (request.path == "/bufferTest") {
-      typewriter_.bufferTest(10, 80);
       sendGenericResponse(client, PicoRest::HttpResponse::StatusCode::OK);
     }
     else {

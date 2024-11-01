@@ -303,6 +303,15 @@ public:
 
 	// Types a 10-length repeating pattern of characters
 	void bufferTest(uint16_t numChars, uint8_t charsPerLine);
+	// Types Lorem ipsum in a circle
+	void circleTest();
+	// Types all the characters in the printwheel (US keyboard)
+	void characterTest(wheelwriter::ww_typestyle style=TYPESTYLE_NORMAL);
+	// Generates a formatted printwheel sample
+	void printwheelSample(uint8_t plusPosition, uint8_t underscorePosition);
+	// Queries the typewriter and generates a JSON
+	void queryToJson(std::string& json);
+  
 
 	class TypeStream {
 	public:

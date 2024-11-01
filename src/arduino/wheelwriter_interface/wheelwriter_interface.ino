@@ -80,13 +80,13 @@ void loop() {
     inString.toLowerCase();
     inString.toCharArray(inputBuffer, 65);
 
-    const char delim[2] = " ";
-    char* token = strtok(inputBuffer, delim);
+    ParameterString parameters(inString.c_str(), ' ');
+    std::string command = parameters.getParameterString(0);
 
-    if (strlen(token) == 0) {
+    if (command.size() == 0) {
       // Do nothing, loop back to the ready prompt
     }
-    else if ((token[0] == 'h') || (strcmp(token, "help") == 0)) {
+    else if ((command == "h") || (command == "help")) {
       Serial.write("Available functions:\n");
       Serial.write("help - print this help text\n");
       Serial.write("buffer - execute the buffer test\n");
@@ -102,26 +102,10 @@ void loop() {
       Serial.write("type - type characters on the typewriter\n");
       Serial.write("wifi - set up WiFi\n");
     }
-    else if (strcmp(token, "buffer") == 0) {
-      uint16_t numChars = 10;
-      uint8_t charsPerLine = 80;
-      token = strtok(NULL, delim);
-      char* end;
-      int i = 0;
-      while (token != NULL) {
-        long value = strtol(token, &end, 0);
-        if (token != end) {
-          if (i == 0) {
-            numChars = value;
-            i++;
-          }
-          else {
-            charsPerLine = value;
-            break;
-          }
-        }
-        token = strtok(NULL, delim);
-      }
+    else if (command == "buffer") {
+      uint16_t numChars = parameters.getParameterInt(1, 10);
+      uint8_t charsPerLine = parameters.getParameterInt(2, 80);
+      
       Serial.write("[FUNCTION] Buffer Test ");
       Serial.write("| # Characters: ");
       Serial.print(numChars);
@@ -129,18 +113,16 @@ void loop() {
       Serial.println(charsPerLine);
       typewriter.bufferTest(numChars, charsPerLine);
     }
-    else if (strcmp(token, "char") == 0) {
+    else if (command == "char") {
       uint8_t typestyle = wheelwriter::TYPESTYLE_NORMAL;
-      token = strtok(NULL, delim);
-      while (token != NULL) {
-        if (strcmp(token, "bold") == 0) {
-          typestyle = typestyle | wheelwriter::TYPESTYLE_BOLD;
-        }
-        else if (strcmp(token, "underline") == 0) {
-          typestyle = typestyle | wheelwriter::TYPESTYLE_UNDERLINE; 
-        }
-        token = strtok(NULL, delim);
+      std::string param = parameters.getParameterString(1);
+      if (param == "bold") {
+        typestyle = wheelwriter::TYPESTYLE_BOLD;
       }
+      else if (param == "underline") {
+        typestyle = wheelwriter::TYPESTYLE_UNDERLINE;
+      }
+
       Serial.write("[FUNCTION] Character Test - ");
       if (typestyle == wheelwriter::TYPESTYLE_NORMAL) {
         Serial.write("Normal\n");
@@ -154,27 +136,22 @@ void loop() {
         }
         Serial.write("\n");
       }
-      characterTest((wheelwriter::ww_typestyle)typestyle);
+      typewriter.characterTest((wheelwriter::ww_typestyle)typestyle);
     }
-    else if (strcmp(token, "circle") == 0) {
+    else if (command == "circle") {
       Serial.write("[FUNCTION] Circle Test\n");
-      circleTest();
+      typewriter.circleTest();
     }
-    else if (strcmp(token, "keyboard") == 0) {
+    else if (command == "keyboard") {
       uint8_t verbose = 0;
-      token = strtok(NULL, delim);
-      char* end;
-      while (token != NULL) {
-        if (strlen(token) >= 0) {
-          if ((token[0] == 'v') && (verbose == 0)) {
-            verbose = 1;
-          }
-          if (strcmp(token, "vv") == 0) {
-            verbose = 2;
-          }
-        }
-        token = strtok(NULL, delim);
+      std::string param = parameters.getParameterString(1);
+      if (param == "v") {
+        verbose = 1;
       }
+      else if (param == "vv") {
+        verbose = 2;
+      }
+
       Serial.write("[FUNCTION] Keyboard Input");
       if (verbose == 0) {
         Serial.write('\n');
@@ -185,72 +162,42 @@ void loop() {
       }
       keyboardFunction(verbose);
     }
-    else if (strcmp(token, "loopback") == 0) {
+    else if (command == "loopback") {
       Serial.write("[FUNCTION] Loopback Test\n");
       loopbackTest();
     }
-    else if (strcmp(token, "query") == 0) {
+    else if (command == "query") {
       Serial.write("[FUNCTION] Query\n");
       queryFunction();
     }
-    else if (strcmp(token, "raw") == 0) {
+    else if (command == "raw") {
       Serial.write("[FUNCTION] Command\n");
       rawCommandFunction();
     }
-    else if (strcmp(token, "read") == 0) {
+    else if (command == "read") {
       Serial.write("[FUNCTION] Read Bus\n");
       readFunction();
     }
-    else if (strcmp(token, "relay") == 0) {
+    else if (command == "relay") {
       Serial.write("[FUNCTION] Relay commands\n");
       relayFunction();
     }
     
-    else if (strcmp(token, "sample") == 0) {
-      uint8_t plusPosition = 0x3b;
-      uint8_t underscorePosition = 0x4f;
-      token = strtok(NULL, delim);
-      char* end;
-      int i = 0;
-      while (token != NULL) {
-        long value = strtol(token, &end, 0);
-        if (token != end) {
-          if (i == 0) {
-            plusPosition = value;
-            i++;
-          }
-          else {
-            underscorePosition = value;
-            break;
-          }
-        }
-        token = strtok(NULL, delim);
-      }
+    else if (command == "sample") {
+      uint8_t plusPosition = parameters.getParameterInt(1, 0x3b);
+      uint8_t underscorePosition = parameters.getParameterInt(2, 0x4f);
+      
       Serial.write("[FUNCTION] Printwheel Sample ");
       Serial.write("| plus: 0x");
       Serial.print(plusPosition, HEX);
       Serial.write(", - underscore: 0x");
       Serial.println(underscorePosition, HEX);
-      printwheelSample(plusPosition, underscorePosition);
+      typewriter.printwheelSample(plusPosition, underscorePosition);
     }
-    else if (strcmp(token, "type") == 0) {
-      uint8_t keyboard = 1;
-      uint8_t useCaratAsControl = 1;
-      token = strtok(NULL, delim);
-      char* end;
-      int i = 0;
-      while (token != NULL) {
-        uint8_t value = atoi(token);
-        if (i == 0) {
-          keyboard = value;
-        }
-        else {
-          useCaratAsControl = value;
-          break;
-        }
-        i++;
-        token = strtok(NULL, delim);
-      }
+    else if (command == "type") {
+      uint8_t keyboard = parameters.getParameterInt(1, 1);
+      uint8_t useCaratAsControl = parameters.getParameterInt(2, 1);
+
       Serial.write("[FUNCTION] Type ");
       Serial.write("| Keyboard: ");
       Serial.print(keyboard);
@@ -258,7 +205,7 @@ void loop() {
       Serial.println(useCaratAsControl);
       typeFunction(keyboard, useCaratAsControl);
     }
-    else if (strcmp(token, "wifi") == 0) {
+    else if (command == "wifi") {
       Serial.write("[FUNCTION] Configure wifi\n");
       char* ssid = (char*)malloc(65);
       char* password = (char*)malloc(65);
@@ -288,79 +235,9 @@ void loop() {
     else {
       Serial.write("[UNKNOWN FUNCTION] Enter 'help' to see a list of available commands\n");
     }
-    // uint16_t buffer[3];
-    // buffer[0] = 0x121;
-    // buffer[1] = 0x020;
-    // buffer[1] = 0x000;
-    // uart.write(buffer, 3);
-    // uart.write(0x121);
-    
-    // typewriter.queryStatus();
-    // typewriter.queryModel();
-
-    // typewriter.typeCharacter(0x01);
-    // delay(500);
-    // typewriter.moveCarriage(10, wheelwriter::CARRIAGE_DIRECTION_RIGHT);
-    // delay(500);
-    // typewriter.typeCharacter(0x59);
-    // delay(500);
-    // typewriter.moveCarriage(10, wheelwriter::CARRIAGE_DIRECTION_RIGHT);
-    // delay(500);
-    // typewriter.typeCharacter(0x05);
-    // delay(500);
-    // typewriter.moveCarriage(10, wheelwriter::CARRIAGE_DIRECTION_RIGHT);
-
-    // typewriter.typeCharacter(0x01, 10);
-    // delay(500);
-    // typewriter.typeCharacter(0x59, 10);
-    // delay(500);
-    // typewriter.typeCharacter(0x05, 10);
-    // delay(500);
   }
 }
 
-void circleTest() {
-  char buffer[] = "Hello, world! Lorem ipsum dolor sit amet. ";
-  int dx[41] = {  15,  15,  14,  14,  11,  11,   8,   6,   4,   2, 
-                  -1,  -3,  -5,  -7,  -9, -11, -13, -14, -14, -15, 
-                 -16, -15, -14, -14, -13, -11,  -9,  -7,  -5,  -3, 
-                  -1,   2,   4,   6,   8,  11,  11,  14,  14,  15,  15};
-  int dy[41] = {  -1,  -3,  -4,  -7,  -7, -10, -10, -11, -12, -12, 
-                 -12, -12, -12, -10, -10,  -9,  -7,  -5,  -4,  -2, 
-                   0,   2,   4,   5,   7,   9,  10,  10,  12,  12, 
-                  12,  12,  12,  11,  10,  10,   7,   7,   4,   3,   1};
-  typewriter.setLeftMargin();
-
-  // Move to center
-  typewriter.moveCarriage(100);
-  for (int i = 0; i < strlen(buffer); i++) {
-    typewriter.typeAsciiInPlace(buffer[i]);
-    if (i == strlen(buffer) - 1) break;
-    typewriter.moveCarriage(dx[i]);
-    typewriter.movePlaten(-dy[i]);
-  }
-  typewriter.carriageReturn();
-  typewriter.movePlaten(127);
-  typewriter.movePlaten(127);
-}
-
-void characterTest(wheelwriter::ww_typestyle style) {
-  char buffer1[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  char buffer2[] = "abcdefghijklmnopqrstuvwxyz";
-  char buffer3[] = "1234567890-=!@#$%\xa2&*()_+";
-  char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
-  char* buffers[4] = {buffer1, buffer2, buffer3, buffer4};
-
-  typewriter.readFlush();
-  typewriter.setSpaceForWheel();
-  typewriter.setLeftMargin();
-
-  for (int i = 0; i < 4; i++) {
-    typewriter.typeAsciiString(buffers[i], style);
-    typewriter.carriageReturn();
-    typewriter.lineFeed();
-  }
-}
 
 void keyboardFunction(uint8_t verbose) {
   typewriter.readFlush();
@@ -446,81 +323,6 @@ void loopbackTest() {
       Serial.println(value, HEX);
     }
   }
-}
-
-void printwheelSample(const uint8_t plusPosition, const uint8_t underscorePosition) {
-  // A printwheel has 96 (0x60) characters
-  // This prints in a pair 16 x 6 arrays (regular and bold) with a border of alignment marks
-
-  typewriter.readFlush();
-
-  wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
-  typewriter.setSpaceForWheel();
-  typewriter.setLeftMargin();
-
-  // Row 0
-  typewriter.typeCharacter(plusPosition, typestyle);
-  typewriter.typeCharacter(plusPosition, typestyle);
-  typewriter.typeCharacter(underscorePosition, typestyle);
-  typewriter.moveCarriageSpaces(7);
-  typewriter.typeCharacter(plusPosition, typestyle);
-  typewriter.moveCarriageSpaces(9);
-  typewriter.typeCharacter(plusPosition, typestyle);
-  typewriter.carriageReturn();
-  typewriter.lineFeed();
-
-  // Row 1
-  typewriter.typeCharacter(plusPosition, typestyle);
-  typewriter.carriageReturn();
-  typewriter.lineFeed();
-
-  // Row 2-14
-  for (int sample = 0; sample < 2; sample++) {
-    switch (sample) {
-      case 0:
-        typestyle = wheelwriter::TYPESTYLE_NORMAL;
-        break;
-      case 1:
-        typestyle = wheelwriter::TYPESTYLE_BOLD;
-        break;
-    }
-    // Type all 96 printwheel positions in a 16 x 8 array
-    uint8_t wheelPosition = 1;
-    for (int row = 0; row < 6; row++) {
-      typewriter.moveCarriageSpaces(2);
-      for (int i = 0; i < 16; i++, wheelPosition++) {
-        typewriter.typeCharacter(wheelPosition, typestyle);
-        // Space after the 8th character
-        if (i == 7) {
-          typewriter.moveCarriageSpaces(1);
-        }
-      }
-      typewriter.carriageReturn();
-      typewriter.lineFeed();
-    }
-    // Space between samples
-    if (sample == 0) {
-      typewriter.typeCharacter(plusPosition, typestyle);
-      typewriter.moveCarriageSpaces(19);
-      typewriter.typeCharacter(plusPosition, typestyle);
-      typewriter.carriageReturn();
-      typewriter.lineFeed();
-    }
-  }
-  typestyle = wheelwriter::TYPESTYLE_NORMAL;
-  
-  // Row 15
-  typewriter.carriageReturn();
-  typewriter.lineFeed();
-
-  // Row 16
-  typewriter.typeCharacter(plusPosition, typestyle);
-  typewriter.moveCarriageSpaces(9);
-  typewriter.typeCharacter(plusPosition, typestyle);
-  typewriter.moveCarriageSpaces(9);
-  typewriter.typeCharacter(plusPosition, typestyle);
-  typewriter.carriageReturn();
-  typewriter.lineFeed();
 }
 
 void queryFunction() {
@@ -828,7 +630,7 @@ int connectWifi(char* ssid, char* password) {
   if (numSsid) {
     String inString;
     while (true) {
-      Serial.write("Select network by number, -1 to manually enter SSID, or press Enter to cancel: ");
+      Serial.write("\nSelect network by number, -1 to manually enter SSID, or press Enter to cancel: ");
       while (true) {
         if (Serial.available()) {
           inString = Serial.readStringUntil('\n');
@@ -841,7 +643,7 @@ int connectWifi(char* ssid, char* password) {
       }
       int network = inString.toInt();
       if (((network == 0) && (inString[0] != '0')) || (network >= numSsid)) {
-        Serial.write("Invalid network number!\n");
+        Serial.write("*** Invalid network number!\n");
         continue;
       }
       if (network >= 0) {
@@ -855,7 +657,7 @@ int connectWifi(char* ssid, char* password) {
   } 
   
   while (true) {
-    Serial.write("Manually enter SSID or press Enter to cancel: ");
+    Serial.write("\nManually enter SSID or press Enter to cancel: ");
     String inString;
     while (true) {  
       if (Serial.available()) {
@@ -874,7 +676,7 @@ int connectWifi(char* ssid, char* password) {
 
 int connectWifiSsid(const char* ssid, char* password) {
   while (true) {
-    Serial.write("Enter password or press Enter to cancel: ");
+    Serial.write("\nEnter password or press Enter to cancel: ");
     String inString;
     while (true) { 
       if (Serial.available()) {

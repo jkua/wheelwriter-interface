@@ -544,6 +544,139 @@ void Wheelwriter::bufferTest(uint16_t numChars, uint8_t charsPerLine) {
 	}
 }
 
+void Wheelwriter::circleTest() {
+  char buffer[] = "Hello, world! Lorem ipsum dolor sit amet. ";
+  int dx[41] = {  15,  15,  14,  14,  11,  11,   8,   6,   4,   2, 
+                  -1,  -3,  -5,  -7,  -9, -11, -13, -14, -14, -15, 
+                 -16, -15, -14, -14, -13, -11,  -9,  -7,  -5,  -3, 
+                  -1,   2,   4,   6,   8,  11,  11,  14,  14,  15,  15};
+  int dy[41] = {  -1,  -3,  -4,  -7,  -7, -10, -10, -11, -12, -12, 
+                 -12, -12, -12, -10, -10,  -9,  -7,  -5,  -4,  -2, 
+                   0,   2,   4,   5,   7,   9,  10,  10,  12,  12, 
+                  12,  12,  12,  11,  10,  10,   7,   7,   4,   3,   1};
+  setLeftMargin();
+
+  // Move to center
+  moveCarriage(100);
+  for (int i = 0; i < strlen(buffer); i++) {
+    typeAsciiInPlace(buffer[i]);
+    if (i == strlen(buffer) - 1) break;
+    moveCarriage(dx[i]);
+    movePlaten(-dy[i]);
+  }
+  carriageReturn();
+  movePlaten(127);
+  movePlaten(127);
+}
+
+void Wheelwriter::characterTest(wheelwriter::ww_typestyle style) {
+  char buffer1[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  char buffer2[] = "abcdefghijklmnopqrstuvwxyz";
+  char buffer3[] = "1234567890-=!@#$%\xa2&*()_+";
+  char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
+  char* buffers[4] = {buffer1, buffer2, buffer3, buffer4};
+
+  readFlush();
+  setSpaceForWheel();
+  setLeftMargin();
+
+  for (int i = 0; i < 4; i++) {
+    typeAsciiString(buffers[i], style);
+    carriageReturn();
+    lineFeed();
+  }
+}
+
+void Wheelwriter::printwheelSample(uint8_t plusPosition, uint8_t underscorePosition) {
+  // A printwheel has 96 (0x60) characters
+  // This prints in a pair 16 x 6 arrays (regular and bold) with a border of alignment marks
+
+  wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
+  readFlush();
+  setSpaceForWheel();
+  setLeftMargin();
+
+  // Row 0
+  typeCharacter(plusPosition, typestyle);
+  typeCharacter(plusPosition, typestyle);
+  typeCharacter(underscorePosition, typestyle);
+  moveCarriageSpaces(7);
+  typeCharacter(plusPosition, typestyle);
+  moveCarriageSpaces(9);
+  typeCharacter(plusPosition, typestyle);
+  carriageReturn();
+  lineFeed();
+
+  // Row 1
+  typeCharacter(plusPosition, typestyle);
+  carriageReturn();
+  lineFeed();
+
+  // Row 2-14
+  for (int sample = 0; sample < 2; sample++) {
+    switch (sample) {
+      case 0:
+        typestyle = wheelwriter::TYPESTYLE_NORMAL;
+        break;
+      case 1:
+        typestyle = wheelwriter::TYPESTYLE_BOLD;
+        break;
+    }
+    // Type all 96 printwheel positions in a 16 x 8 array
+    uint8_t wheelPosition = 1;
+    for (int row = 0; row < 6; row++) {
+      moveCarriageSpaces(2);
+      for (int i = 0; i < 16; i++, wheelPosition++) {
+        typeCharacter(wheelPosition, typestyle);
+        // Space after the 8th character
+        if (i == 7) {
+          moveCarriageSpaces(1);
+        }
+      }
+      carriageReturn();
+      lineFeed();
+    }
+    // Space between samples
+    if (sample == 0) {
+      typeCharacter(plusPosition, typestyle);
+      moveCarriageSpaces(19);
+      typeCharacter(plusPosition, typestyle);
+      carriageReturn();
+      lineFeed();
+    }
+  }
+  typestyle = wheelwriter::TYPESTYLE_NORMAL;
+  
+  // Row 15
+  carriageReturn();
+  lineFeed();
+
+  // Row 16
+  typeCharacter(plusPosition, typestyle);
+  moveCarriageSpaces(9);
+  typeCharacter(plusPosition, typestyle);
+  moveCarriageSpaces(9);
+  typeCharacter(plusPosition, typestyle);
+  carriageReturn();
+  lineFeed();
+}
+
+void Wheelwriter::queryToJson(std::string& json) {
+	json.clear();
+
+	json = "{";
+	json += "\"model\":";
+	json += std::to_string(queryModel());
+	json += ",";
+	json += "\"wheel\":";
+	json += std::to_string(queryPrintwheel());
+	json += ",";
+	json += "\"status\":";
+	json += std::to_string(queryStatus());
+	json += "}";
+}
+
+
 // =================
 // Wheelwriter::TypeStream class
 // =================
@@ -693,7 +826,6 @@ void Wheelwriter::TypeStream::flushBuffer() {
 	for (char c : buffer_) {
 		typewriter_.typeAscii(c, typestyle_);
 	}
-	Serial.println();
 	buffer_.clear();
 }
 void Wheelwriter::TypeStream::reset() {
