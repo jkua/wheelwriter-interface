@@ -589,34 +589,56 @@ int Wheelwriter::TypeStream::type(char inByte) {
 			}
 			// Invalid control sequnece
 			else {
+				buffer_ += inByte;
 				flushBuffer();
-				typewriter_.typeAscii(inByte, typestyle_);
 				state_ = NORMAL;
 			}
 			break;
 		}
 		case ESCAPE: {
-			// ANSI escape sequence - ^[ <value> m
-			if (inByte == 'm') {
-				parseEscape(buffer_, typestyle_, lineSpacing_);
-				typewriter_.setLineSpacing(lineSpacing_);
-				buffer_.clear();
-				state_ = NORMAL;
-			}
-			// Invalid ANSI escape sequence
-			else if (isalpha(inByte) || (buffer_.size()-digitOffset(buffer_)) > 3) {
-				flushBuffer();
-				state_ = NORMAL;
+			// ANSI escape sequence - ^[[<value> m
+			if (inByte == '[') {
+				buffer_ += inByte;
+				state_ = CSI;
 			}
 			else {
 				buffer_ += inByte;
+				flushBuffer();
+				state_ = NORMAL;
+			}
+			break;
+		}
+		case CSI: {
+			if (inByte == 'm') {
+				if (parseEscape(buffer_, typestyle_, lineSpacing_)) {
+					typewriter_.setLineSpacing(lineSpacing_);
+					buffer_.clear();
+				}
+				else {
+					flushBuffer();
+				}
+				state_ = NORMAL;
+			}
+			else if (isdigit(inByte)) {
+				buffer_ += inByte;
+				// Too many digits
+				if ((buffer_.size()-digitOffset(buffer_)) > 2) {
+					flushBuffer();
+					state_ = NORMAL;
+				}
+			}
+			// Invalid ANSI escape sequence
+			else {
+				buffer_ += inByte;
+				flushBuffer();
+				state_ = NORMAL;
 			}
 			break;
 		}
 	}
 	return state_;
 }
-void Wheelwriter::TypeStream::parseEscape(const std::string& buffer, wheelwriter::ww_typestyle& typestyle, wheelwriter::ww_linespacing& lineSpacing) {
+int Wheelwriter::TypeStream::parseEscape(const std::string& buffer, wheelwriter::ww_typestyle& typestyle, wheelwriter::ww_linespacing& lineSpacing) {
 	size_t offset = digitOffset(buffer);
 
 	const char* start = buffer.c_str()+offset;
@@ -652,8 +674,12 @@ void Wheelwriter::TypeStream::parseEscape(const std::string& buffer, wheelwriter
       case 24: // Not underlined
         typestyle = (wheelwriter::ww_typestyle)((uint8_t)typestyle & 0x0f);
         break;
+      default: // Invalid value
+       	return 0;
     }
+    return 1; // Valid escape
   }
+  return 0; // Invalid escape sequence - in theory this should never be reached if the front end filtering is working
 }
 size_t Wheelwriter::TypeStream::digitOffset(const std::string& buffer) {
 	for (size_t i = 0; i < buffer.size(); i++) {
@@ -667,6 +693,7 @@ void Wheelwriter::TypeStream::flushBuffer() {
 	for (char c : buffer_) {
 		typewriter_.typeAscii(c, typestyle_);
 	}
+	Serial.println();
 	buffer_.clear();
 }
 void Wheelwriter::TypeStream::reset() {

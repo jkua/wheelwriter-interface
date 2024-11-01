@@ -319,7 +319,7 @@ public:
 		}
 	private:
 		void flushBuffer();
-		void parseEscape(const std::string& buffer, wheelwriter::ww_typestyle& typestyle, wheelwriter::ww_linespacing& lineSpacing);
+		int parseEscape(const std::string& buffer, wheelwriter::ww_typestyle& typestyle, wheelwriter::ww_linespacing& lineSpacing);
 		size_t digitOffset(const std::string& buffer);
 
 		Wheelwriter& typewriter_;
@@ -329,7 +329,8 @@ public:
 		enum State {
 			NORMAL=1,
 			CARAT,
-			ESCAPE
+			ESCAPE,
+			CSI
 		} state_;
 		bool useCaratAsControl_;
 	} typeStream;
