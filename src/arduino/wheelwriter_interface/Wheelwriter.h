@@ -312,9 +312,10 @@ public:
 	// Queries the typewriter and generates a JSON
 	void queryToJson(std::string& json);
 	// Read a line from the typewriter 
-	// timeout sends the line after the the last character entered. 0 disables the timeout
-	// Returns 1 if a line was read, 0 if timeout reached (characters in buffer available)
-	int readLine(std::string& line, uint32_t timeout=0);
+	// - timeout sends the line after the the last character entered. 0 disables the timeout
+	// - corrected sends a corrected line if backspace is used. If false, the line is sent as entered, including backspaces
+	// - Returns 1 if a line was read, 0 if timeout reached (characters in buffer available)
+	int readLine(std::string& line, uint32_t timeout=0, bool corrected=true);
 
 	class TypeStream {
 	public:

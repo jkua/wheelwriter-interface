@@ -675,7 +675,7 @@ void Wheelwriter::queryToJson(std::string& json) {
 	json += std::to_string(queryStatus());
 	json += "}";
 }
- int Wheelwriter::readLine(std::string& line, uint32_t timeout) {
+ int Wheelwriter::readLine(std::string& line, uint32_t timeout, bool corrected) {
 	uint32_t startTime = millis();
 	uint32_t elapsedTime = 0;
 	Serial.write("Wheelwriter::readLine()\n");
@@ -689,15 +689,22 @@ void Wheelwriter::queryToJson(std::string& json) {
 		if (keypressType == CHARACTER_KEYPRESS ||
 			  keypressType == SPACE_KEYPRESS ||
 			  keypressType == RETURN_KEYPRESS) {
-			line += ascii;
 			startTime = millis();
 			if (ascii == '\b') {
+				if (!corrected) {
+					line += ascii;
+				}
+				else if (line.size() > 0) {
+					line.pop_back();
+				}
 				Serial.print("\\b");
 			}
 			else if (ascii == '\n') {
+				line += ascii;
 				Serial.println("\\n");
 			}
 			else {
+				line += ascii;
 				Serial.print(ascii);
 			}
 		}

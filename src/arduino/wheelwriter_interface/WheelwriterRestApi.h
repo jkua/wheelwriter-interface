@@ -53,9 +53,10 @@ public:
     }
     else if (request.path == "/readLine") {
       ParameterString parameters(request.content);
-      int timeout = parameters.getParameterInt(0, 0);
+      uint32_t timeout = parameters.getParameterInt(0, 0);
+      bool corrected = parameters.getParameterInt(1, true);
       std::string line;
-      typewriter_.readLine(line, timeout);
+      typewriter_.readLine(line, timeout, corrected);
       PicoRest::HttpResponse response(PicoRest::HttpResponse::StatusCode::OK);
       client.println(response.header().c_str());
       client.println(line.c_str());
