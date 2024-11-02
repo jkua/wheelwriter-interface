@@ -1,5 +1,6 @@
 // Wheelwriter REST API class
-
+// Copyright (c) 2024 John Kua <john@kua.fm>
+//
 #pragma once 
 
 #include <Arduino.h>
@@ -49,6 +50,15 @@ public:
       PicoRest::HttpResponse response(PicoRest::HttpResponse::StatusCode::OK);
       client.println(response.header().c_str());
       client.println(json.c_str());
+    }
+    else if (request.path == "/readLine") {
+      ParameterString parameters(request.content);
+      int timeout = parameters.getParameterInt(0, 0);
+      std::string line;
+      typewriter_.readLine(line, timeout);
+      PicoRest::HttpResponse response(PicoRest::HttpResponse::StatusCode::OK);
+      client.println(response.header().c_str());
+      client.println(line.c_str());
     }
     else if (request.path == "/type") {
       typewriter_.readFlush();

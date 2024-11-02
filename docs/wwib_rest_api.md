@@ -12,6 +12,10 @@ printwheel pitch, and status
 * `/characterTest` (**POST**) - types all the characters on the printwheel
 * `/circleTest` (**POST**) - types `Lorem ipsum` in a circle
 * `/printwheelSample` (**POST**) - types a formatted printwheel sample
+* `/readLine` (**POST**) - reads a line of text from the typewriter. This will 
+wait for a carriage return. Sending an integer in the request will configure 
+a timeout in milliseconds from the last typed character. Backspaces and 
+newlines are included in the response.
 
 ## Setup
 Use the serial console to setup the WiFi with the `wifi` command. The IP address 

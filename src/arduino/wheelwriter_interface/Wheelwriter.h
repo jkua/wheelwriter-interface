@@ -311,7 +311,10 @@ public:
 	void printwheelSample(uint8_t plusPosition, uint8_t underscorePosition);
 	// Queries the typewriter and generates a JSON
 	void queryToJson(std::string& json);
-  
+	// Read a line from the typewriter 
+	// timeout sends the line after the the last character entered. 0 disables the timeout
+	// Returns 1 if a line was read, 0 if timeout reached (characters in buffer available)
+	int readLine(std::string& line, uint32_t timeout=0);
 
 	class TypeStream {
 	public:
