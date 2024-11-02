@@ -1,3 +1,6 @@
+// PicoRest - simple REST API class
+// Copyright (c) 2024 John Kua <john@kua.fm>
+//
 #include <Arduino.h>
 #include <WiFiNINA.h>
 

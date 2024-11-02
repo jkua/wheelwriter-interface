@@ -1,5 +1,6 @@
-// Simple REST API class
-
+// PicoRest - simple REST API class
+// Copyright (c) 2024 John Kua <john@kua.fm>
+//
 #pragma once 
 
 #include <string>

@@ -1,9 +1,10 @@
-// Parameter storage class
+// Parameter storage class for an Arduino Nano RP2040 Connect
 // Buffers and write parameters to flash
-
+// Copyright (c) 2024 John Kua <john@kua.fm>
+//
 // Parameter keys and values are stored as strings up to 63 characters long
 // This is tuned for the RP2040 which programs in 256 byte blocks and erases in 4KB blocks (31 params + start/end)
-
+//
 // Flash storage format - 64 byte blocks
 // -------------------------------------
 // Block 0: START PARAM STORAGE <num parameters>

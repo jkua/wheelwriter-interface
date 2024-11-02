@@ -1,7 +1,7 @@
 // Flash helper class for mbed
 // Based on: https://docs.arduino.cc/tutorials/portenta-h7/reading-writing-flash-memory/
-
-// Ensures that this file is only included once
+// Copyright (c) 2024 John Kua <john@kua.fm>
+//
 #pragma once 
 
 #include <Arduino.h>

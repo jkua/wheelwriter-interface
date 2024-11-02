@@ -1,3 +1,7 @@
+// Parameter storage class for an Arduino Nano RP2040 Connect
+// Buffers and write parameters to flash
+// Copyright (c) 2024 John Kua <john@kua.fm>
+//
 #include "ParameterStorage.h"
 
 using namespace std::literals::string_literals; 

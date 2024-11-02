@@ -1,5 +1,6 @@
 // Utility functions
-
+// Copyright (c) 2024 John Kua <john@kua.fm>
+//
 #pragma once 
 
 #include <string>
