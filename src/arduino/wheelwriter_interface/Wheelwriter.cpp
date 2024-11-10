@@ -9,147 +9,101 @@
 using namespace wheelwriter;
 
 uint8_t Wheelwriter::sendCommand(ww_command command) {
-	bufferOut_[0] = (uint16_t)defaultAddress_ + 0x100;
-	bufferOut_[1] = command;
-	uint16_t response;
-
-	// Send address
-	uart_->write(bufferOut_[0]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
-	if (response != 0) {
-		Serial.write("ERROR: sendCommand(): receive bad ACK to address byte! 0x");
-		Serial.println(response, HEX);
-	}
-
-	// Send command
-	uart_->write(bufferOut_[1]);
-	uart_->read(); // Ignore self-transmission
-	return uart_->read();
-}
-uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data) {
-	bufferOut_[0] = (uint16_t)defaultAddress_ + 0x100;
-	bufferOut_[1] = command;
-	bufferOut_[2] = data;
-	uint16_t response;
-
-	// Send address
-	uart_->write(bufferOut_[0]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
-	if (response != 0) {
-		Serial.write("ERROR: sendCommand(): receive bad ACK to address byte! 0x");
-		Serial.println(response, HEX);
-	}
-
-	// Send command
-	uart_->write(bufferOut_[1]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
-	if (response != 0) {
-		Serial.write("ERROR: sendCommand(): receive bad ACK to command byte! 0x");
-		Serial.println(response, HEX);
-	}
-
-	// Send data
-	uart_->write(bufferOut_[2]);
-	uart_->read(); // Ignore self-transmission
-	return uart_->read();
-}
-uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data2) {
-	bufferOut_[0] = (uint16_t)defaultAddress_ + 0x100;
-	bufferOut_[1] = command;
-	bufferOut_[2] = data1;
-	bufferOut_[3] = data2;
-	uint16_t response;
-	
-	// Send address
-	uart_->write(bufferOut_[0]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
-	if (response != 0) {
-		Serial.write("ERROR: sendCommand(): receive bad ACK to address byte! 0x");
-		Serial.println(response, HEX);
-	}
-
-	// Send command
-	uart_->write(bufferOut_[1]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
-	if (response != 0) {
-		Serial.write("ERROR: sendCommand(): receive bad ACK to command byte! 0x");
-		Serial.println(response, HEX);
-	}
-
-	// Send data 1
-	uart_->write(bufferOut_[2]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
-	if (response != 0) {
-		Serial.write("ERROR: sendCommand(): receive bad ACK to data 1 byte! 0x");
-		Serial.println(response, HEX);
-	}
-
-	// Send data 2
-	uart_->write(bufferOut_[3]);
-	uart_->read(); // Ignore self-transmission
-	return uart_->read();
-}
-uint8_t Wheelwriter::sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t* error, int ignoreErrors) {
-		*error = 0;
-
-		// Check if command is valid
-		if (command > WW_MAX_VALID_COMMAND) {
-			*error = 0x13;
-			return command;
-		}
-
-		uint8_t commandLength = ww_command_length[command];
-
-		bufferOut_[0] = address + 0x100;
-	bufferOut_[1] = command;
-	bufferOut_[2] = data1;
-	bufferOut_[3] = data2;
-	uint16_t response;
-	
-	// Send address
-	uart_->write(bufferOut_[0]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
-	if (!ignoreErrors && (response != 0)) { // Bad ACK
-		*error = 0x11;
+	uint8_t error, failIndex;
+	uint8_t response = sendCommand(defaultAddress_, command, 0, 0, error, failIndex, 0);
+	if (error) {
+		_printCommandError(error, failIndex, response);
 		return 0;
 	}
+	return (uint8_t)response;
+}
+uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data) {
+	uint8_t error, failIndex;
+	uint8_t response = sendCommand(defaultAddress_, command, data, 0, error, failIndex, 0);
+	if (error) {
+		_printCommandError(error, failIndex, response);
+		return 0;
+	}
+	return (uint8_t)response;
+}
+uint8_t Wheelwriter::sendCommand(ww_command command, uint8_t data1, uint8_t data2) {
+	uint8_t error, failIndex;
+	uint8_t response = sendCommand(defaultAddress_, command, data1, data2, error, failIndex, 0);
+	if (error) {
+		_printCommandError(error, failIndex, response);
+		return 0;
+	}
+	return (uint8_t)response;
+}
+inline void Wheelwriter::_printCommandError(uint8_t error, uint8_t failIndex, uint16_t response) {
+	switch (error) {
+		case 0x11:
+			Serial.write("ERROR: sendCommand(): receive bad ACK to ");
+			Serial.write(ww_command_part_strings[failIndex]);
+			Serial.write(" byte! 0x");
+			Serial.println(response, HEX);
+		case 0x13:
+			Serial.write("ERROR: sendCommand(): invalid command! 0x");
+			Serial.println(response, HEX);
+	}
+}
+inline uint16_t Wheelwriter::_sendByte(uint16_t byte) {
+	uart_->write(byte);
+	uart_->read(); // Ignore self-transmission
+	return uart_->read();
+}
+uint16_t Wheelwriter::sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t& error, uint8_t& failIndex, int ignoreErrors) {
+	// Ensure the typewriter is ready
+	waitReady((ww_command)command);
+	
+	return _sendCommand(address, command, data1, data2, error, failIndex, ignoreErrors);
+}
+uint16_t Wheelwriter::_sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t& error, uint8_t& failIndex, int ignoreErrors) {
+	error = 0;
+	failIndex = 0;
+
+	// Check if command is valid
+	if (command > WW_MAX_VALID_COMMAND) {
+		error = 0x13;
+		return command;
+	}
+	uint8_t commandLength = ww_command_length[command];
+
+	uint16_t addressOut = address + WW_ADDRESS_BIT;
+	uint16_t response;
+	
+	// Send address
+	response = _sendByte(addressOut);
+	if (!ignoreErrors && (response != 0)) { // Bad ACK
+		error = 0x11;
+		failIndex = 0;
+		return response;
+	}
 
 	// Send command
-	uart_->write(bufferOut_[1]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
+	response = _sendByte(command);
 	if (commandLength == 1) {
 		return response;
 	}
 	if (!ignoreErrors && (response != 0)) { // Bad ACK
-		*error = 0x11;
-		return 1;
+		error = 0x11;
+		failIndex = 1;
+		return response;
 	}
 
 	// Send data 1
-	uart_->write(bufferOut_[2]);
-	uart_->read(); // Ignore self-transmission
-	response = uart_->read();
+	response = _sendByte(data1);
 	if (commandLength == 2) {
 		return response;
 	}
 	if (!ignoreErrors && (response != 0)) { // Bad ACK
-		*error = 0x11;
-		return 2;
+		error = 0x11;
+		failIndex = 2;
+		return response;
 	}
 
 	// Send data 2
-	uart_->write(bufferOut_[3]);
-	uart_->read(); // Ignore self-transmission
-	return uart_->read();
-
+	return _sendByte(data2);
 }
 
 uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
@@ -310,10 +264,23 @@ ww_keypress_type Wheelwriter::readKeypress(char& ascii, uint8_t blocking, uint8_
 	}
 	return keypressType;
 }
-void Wheelwriter::waitReady() {
-	int count = 0;
-	uint8_t status;
-	while (status = queryStatus() != 0) {
+void Wheelwriter::waitReady(ww_command command) {
+	// No infinite recursion
+	if (command == QUERY_STATUS) {
+		readFlush(0);
+		return;
+	}
+
+	while (true) {
+		readFlush(0);
+		uint8_t error, failIndex;
+		uint8_t status = _sendCommand(defaultAddress_, QUERY_STATUS, 0, 0, error, failIndex, 0);
+		if (status == 0) {
+			return;
+		}
+		return;	// Disable the loop for now
+
+		Serial.write("waitReady() status: 0x");
 		Serial.println(status, HEX);
 		delayMicroseconds(1000);
 	}
@@ -542,7 +509,6 @@ void Wheelwriter::bufferTest(uint16_t numChars, uint8_t charsPerLine) {
 	uint8_t bufferSize = strlen(buffer);
 	uint16_t charsTyped = 0;
 
-	this->readFlush();
 	this->setSpaceForWheel();
 	this->setLeftMargin();
 
@@ -594,7 +560,6 @@ void Wheelwriter::characterTest(wheelwriter::ww_typestyle style) {
   char buffer4[] = "\xbc\xbd[]:;\"',.?/\xb0\xb1\xb2\xb3\xa7\xb6";
   char* buffers[4] = {buffer1, buffer2, buffer3, buffer4};
 
-  readFlush();
   setSpaceForWheel();
   setLeftMargin();
 
@@ -610,7 +575,6 @@ void Wheelwriter::printwheelSample(uint8_t plusPosition, uint8_t underscorePosit
   // This prints in a pair 16 x 6 arrays (regular and bold) with a border of alignment marks
 
   wheelwriter::ww_typestyle typestyle = wheelwriter::TYPESTYLE_NORMAL;
-  readFlush();
   setSpaceForWheel();
   setLeftMargin();
 

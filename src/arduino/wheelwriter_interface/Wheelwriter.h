@@ -45,6 +45,12 @@ static const uint8_t ww_command_length[16] = {1, 1, 3, 3,
 																				1, 2, 2, 1,
 																				3, 2, 2, 0};
 
+static const char ww_command_part_strings[][8] = {
+	"address",
+	"command",
+	"data1",
+	"data2"
+};
 enum ww_platen_direction {
 	PLATEN_DIRECTION_DOWN = 0x00,
 	PLATEN_DIRECTION_UP = 0x80
@@ -187,6 +193,7 @@ enum ww_keypress_type {
 	NO_COMMAND = 0xff
 };
 
+static const uint16_t WW_ADDRESS_BIT = 0x100;
 static const uint8_t WW_MOTOR_CTRL_ADDR = 0x21;
 static const uint8_t WW_PRINTWHEEL_MAX = 0x60;
 static const uint8_t WW_CARRIAGE_ADVANCE_USTEP_MAX = 63;
@@ -304,10 +311,13 @@ public:
 	uint8_t sendCommand(ww_command command);
 	uint8_t sendCommand(ww_command command, uint8_t data);
 	uint8_t sendCommand(ww_command command, uint8_t data1, uint8_t data2);
-	uint8_t sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t* error, int ignoreErrors=0);
+	uint16_t sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t& error, uint8_t& failIndex, int ignoreErrors=0);
+	uint16_t _sendByte(uint16_t byte);
+	uint16_t _sendCommand(uint8_t address, uint8_t command, uint8_t data1, uint8_t data2, uint8_t& error, uint8_t& failIndex, int ignoreErrors=0);
+	void _printCommandError(uint8_t error, uint8_t failIndex, uint16_t response);
 	uint8_t readCommand(uint8_t blocking=1, uint8_t verbose=0);
 	ww_keypress_type readKeypress(char& ascii, uint8_t blocking=1, uint8_t verbose=0);
-	void waitReady();
+	void waitReady(ww_command command);
 	void readFlush(bool verbose=0);
 	bool available();
 
@@ -411,7 +421,6 @@ private:
 	uint init_;
 	Uart9Bit* uart_;
 	uint16_t bufferIn_[5];
-	uint16_t bufferOut_[4];
 	uint8_t defaultAddress_;
 	ww_model model_;
 	ww_printwheel wheel_;

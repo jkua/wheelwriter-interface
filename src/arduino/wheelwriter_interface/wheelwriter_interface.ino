@@ -66,7 +66,6 @@ void setup() {
   else {
     Serial.write("--> No WiFi credentials found in flash\n");
   }
-  typewriter.readFlush();
   Serial.write("[READY]\n");
 }
 
@@ -85,8 +84,6 @@ void loop() {
         typewriter.spinWheel();
         terminalMode = true;
         Serial.println("*** Entering terminal mode...");
-        // delay(500);
-        // typewriter.readFlush();
         typewriter.typeAsciiLine("[READY]");
         std::string line;
         typewriter.readLine(line);
@@ -100,7 +97,6 @@ void loop() {
         typewriter.spinWheel();
         terminalMode = false;
         Serial.println("*** Exited terminal mode.");
-        typewriter.readFlush();
       }
     }
   }
@@ -357,7 +353,6 @@ void loopbackTest() {
 }
 
 void queryFunction() {
-  typewriter.readFlush();
   uint16_t model = typewriter.queryModel();
   Serial.write("Model: 0x");
   Serial.println(model, HEX);
@@ -553,19 +548,19 @@ void relayCommand(char commandByte, unsigned long commandStartTime, unsigned lon
       sendTimeoutResponse(commandByte);
       return;
     }
-    uint8_t error;
+    uint8_t error, failIndex;
     // Serial.write("Sending command\n");
     // Serial.write(commandBuffer, 4);
     // Serial.write('\n');
-    uint8_t wwCmdResponse = typewriter.sendCommand(commandBuffer[0], commandBuffer[1], commandBuffer[2], commandBuffer[3], &error, (int)ignoreErrorsFlag);
+    uint8_t wwCmdResponse = typewriter.sendCommand(commandBuffer[0], commandBuffer[1], commandBuffer[2], commandBuffer[3], error, failIndex, (int)ignoreErrorsFlag);
     if (!ignoreErrorsFlag && error) {
         if (batchFlag) {
           response[1] = 0x12; // Batch error
           response[2] = i;    // Failed command index
         }
         else {
-          response[1] = error;
-          response[2] = wwCmdResponse;
+          response[1] = error;      // Command error code
+          response[2] = failIndex;  // Command byte that failed
         }
         Serial.write(response, 4);
         return;
@@ -622,7 +617,6 @@ void typeFunction(uint8_t keyboard, uint8_t useCaratAsControl) {
   uint8_t bytesAvailable = 0;
   uint8_t paused = false;
 
-  typewriter.readFlush();
   typewriter.setSpaceForWheel();
   typewriter.setKeyboard(keyboard);
   typewriter.setLeftMargin();
