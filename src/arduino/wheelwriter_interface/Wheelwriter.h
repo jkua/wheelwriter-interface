@@ -94,18 +94,74 @@ enum ww_operation {
 	TAB_SET = 0x12
 };
 
-enum ww_code {
-	LANG = 0x8e,
-	CTR = 0x96,
-	A_RTN = 0x9a,
-	UNDLN = 0xa2,
-	HALF_UP = 0xa3,
-	HALF_DOWN = 0xa5,
-	CAPS = 0xa7,
-	INDENT = 0xca,
-	BKSP1 = 0xd0,
-	INDENT_CLEAR = 0xd6,
-	CODE_ONLY = 0xe7 
+enum ww_code {	// Mapped with a Wheelwriter 3 keyboard
+  CODE_A = 0x04,
+	CODE_B = 0x1f,
+	CODE_C = 0x16,	// CTR
+	CODE_D = 0x14,
+	CODE_E = 0x12,
+	CODE_F = 0x1c,
+	CODE_G = 0x1d,
+	CODE_H = 0x25,
+	CODE_I = 0x2a,
+	CODE_J = 0x24,
+	CODE_K = 0x2c,
+	CODE_L = 0x34,
+	CODE_M = 0x26,
+	CODE_N = 0x72,	// CAPS
+	CODE_O = 0x32,
+	CODE_P = 0x3a,
+	CODE_Q = 0x02,	// Impression control?
+	CODE_R = 0x1a,
+	CODE_S = 0x0c,
+	CODE_T = 0x1b,
+	CODE_U = 0x22,  // UNDLN
+	CODE_V = 0x1e,
+	CODE_W = 0x0a,
+	CODE_X = 0x0e,
+	CODE_Y = 0x23,
+	CODE_Z = 0x06,
+	CODE_0 = 0x39,
+	CODE_1 = 0x01,	// Spell check on/off
+	CODE_2 = 0x09,	// Spell check - add word to dictionary
+	CODE_3 = 0x11,  // Spell check - delete word from dictionary
+	CODE_4 = 0x19,	// Spell check - adjust beep volume
+	CODE_5 = 0x18,	// Printer on/off
+	CODE_6 = 0x20,	// Printer - online
+	CODE_7 = 0x21,	// Printer - feed
+	CODE_8 = 0x29,	// Printer - set
+	CODE_9 = 0x31,
+
+	CODE_PLUS_MINUS = 0x00,
+	CODE_HYPHEN = 0x38,
+	CODE_EQUAL = 0x28,
+	CODE_BACKSPACE = 0x50,			// BKSP 1/2
+	CODE_TAB = 0x4a,
+	CODE_HALF = 0x3b,		  			// ^2
+	CODE_RIGHT_BRACKET = 0x2b,	// ^3
+	CODE_RETURN = 0x56,
+	CODE_SEMICOLON = 0x3c,			// Section mark
+	CODE_APOSTROPHE = 0x3d,			// Paragraph mark
+	CODE_COMMA = 0x2e,
+	CODE_PERIOD = 0x36,
+	CODE_SLASH = 0x3f,
+	CODE_SPACE = 0x47,
+	CODE_ERASE = 0x4f,
+
+	CODE_MARGIN_RELEASE = 0x48,
+	CODE_LEFT_MARGIN = 0x42,
+	CODE_RIGHT_MARGIN = 0x4b,
+	CODE_TAB_SET = 0x4c,
+	CODE_TAB_CLEAR = 0x45,
+
+	CODE_PAPER_UP = 0x51,
+	CODE_PAPER_DOWN = 0x52,
+	CODE_MICRO_UP = 0x54,
+	CODE_MICRO_DOWN = 0x46,
+	CODE_LINE_SPACE = 0x57,
+
+	CODE_KEY_RELEASED = 0x67, // Emitted when the Code key is released
+	CODE_SHIFT_MASK = 0x80	  // High bit indicates Shift pressed or Shift locked
 };
 
 enum ww_typestyle {
@@ -127,6 +183,7 @@ enum ww_keypress_type {
 	CHARACTER_KEYPRESS = 0x01,
 	SPACE_KEYPRESS = 0x02,
 	RETURN_KEYPRESS = 0x03,
+	CODE_KEYPRESS = 0x04,
 	NO_COMMAND = 0xff
 };
 
@@ -251,15 +308,17 @@ public:
 	uint8_t readCommand(uint8_t blocking=1, uint8_t verbose=0);
 	ww_keypress_type readKeypress(char& ascii, uint8_t blocking=1, uint8_t verbose=0);
 	void waitReady();
-	void readFlush();
+	void readFlush(bool verbose=0);
+	bool available();
 
 	ww_model queryModel();
 	ww_printwheel reset();
 	void typeAsciiInPlace(char ascii, ww_typestyle style=TYPESTYLE_NORMAL);
 	void typeAscii(char ascii, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
 	void typeAscii(char ascii, ww_typestyle style=TYPESTYLE_NORMAL);
-	void typeAsciiString(char* string, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
-	void typeAsciiString(char* string, ww_typestyle style=TYPESTYLE_NORMAL);
+	void typeAsciiString(char* string, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL, bool newLine=false);
+	void typeAsciiString(char* string, ww_typestyle style=TYPESTYLE_NORMAL, bool newLine=false);
+	void typeAsciiLine(char* string, ww_typestyle style=TYPESTYLE_NORMAL);
 	void typeCharacterInPlace(uint8_t wheelPosition, ww_typestyle style=TYPESTYLE_NORMAL);
 	void typeCharacter(uint8_t wheelPosition, uint8_t advanceUsteps, ww_typestyle style=TYPESTYLE_NORMAL);
 	void typeCharacter(uint8_t wheelPosition, ww_typestyle style=TYPESTYLE_NORMAL);

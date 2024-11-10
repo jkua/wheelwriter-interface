@@ -16,6 +16,7 @@ wheelwriter::Wheelwriter typewriter;
 WheelwriterRestApi restApi(webServer, typewriter);
 int inByte = 0;
 char inputBuffer[65];
+bool terminalMode = false;
 
 void setup() {
   gpio_set_drive_strength(25, GPIO_DRIVE_STRENGTH_12MA);
@@ -65,14 +66,43 @@ void setup() {
   else {
     Serial.write("--> No WiFi credentials found in flash\n");
   }
+  typewriter.readFlush();
+  Serial.write("[READY]\n");
 }
 
 void loop() {
-  Serial.write("[READY]\n");
-
-  while (Serial.available() == 0) {
+  while (!Serial.available() && !typewriter.available()) {
     restApi.processClient();
-    delay(100);
+  }
+
+  while (typewriter.available()) {
+    char ascii;
+    wheelwriter::ww_keypress_type keypressType = typewriter.readKeypress(ascii, 0, 0);
+    if ((keypressType == wheelwriter::CODE_KEYPRESS) &&
+        (ascii == (wheelwriter::CODE_SHIFT_MASK | wheelwriter::CODE_I))) {
+      if (!terminalMode) {
+        while (typewriter.readKeypress(ascii, 0, 0) != wheelwriter::CODE_KEYPRESS) {}
+        typewriter.spinWheel();
+        terminalMode = true;
+        Serial.println("*** Entering terminal mode...");
+        // delay(500);
+        // typewriter.readFlush();
+        typewriter.typeAsciiLine("[READY]");
+        std::string line;
+        typewriter.readLine(line);
+        Serial.print("Got: ");
+        Serial.println(line.c_str());
+      }
+      else { 
+        while (typewriter.readKeypress(ascii, 0, 0) != wheelwriter::CODE_KEYPRESS) {}
+        typewriter.typeAsciiLine("[END]");
+        typewriter.spinWheel();
+        typewriter.spinWheel();
+        terminalMode = false;
+        Serial.println("*** Exited terminal mode.");
+        typewriter.readFlush();
+      }
+    }
   }
 
   if (Serial.available() > 0) {
@@ -235,6 +265,7 @@ void loop() {
     else {
       Serial.write("[UNKNOWN FUNCTION] Enter 'help' to see a list of available commands\n");
     }
+    Serial.write("[READY]\n");
   }
 }
 

@@ -297,6 +297,10 @@ ww_keypress_type Wheelwriter::readKeypress(char& ascii, uint8_t blocking, uint8_
 					ascii = 0x08;
 				}
 				break;
+			case SEND_CODE:
+				ascii = bufferIn_[2];
+				keypressType = CODE_KEYPRESS;
+				break;
 			default:
 				keypressType = NO_KEYPRESS;
 		}
@@ -314,14 +318,21 @@ void Wheelwriter::waitReady() {
 		delayMicroseconds(1000);
 	}
 }
-void Wheelwriter::readFlush() {
+void Wheelwriter::readFlush(bool verbose) {
 	uint8_t data;
-	Serial.write("Wheelwriter::readFlush()\n");
+	if (verbose) {
+		Serial.write("Wheelwriter::readFlush()\n");
+	}
 	while (uart_->available()) {
 		uart_->read();
-		Serial.write("    0x");
-		Serial.println(data, HEX);
+		if (verbose) {
+			Serial.write("    0x");
+			Serial.println(data, HEX);
+		}
 	}
+}
+bool Wheelwriter::available() {
+	return uart_->available();
 }
 
 char Wheelwriter::ascii2Printwheel(char ascii) {
@@ -407,13 +418,20 @@ void Wheelwriter::typeAscii(char ascii, uint8_t advanceUsteps, ww_typestyle styl
 void Wheelwriter::typeAscii(char ascii, ww_typestyle style) {
 	typeAscii(ascii, charSpace_, style);
 }
-void Wheelwriter::typeAsciiString(char* string, uint8_t advanceUsteps, ww_typestyle style) {
+void Wheelwriter::typeAsciiString(char* string, uint8_t advanceUsteps, ww_typestyle style, bool newLine) {
 	for (int i = 0; i < strlen(string); i++) {
 		typeAscii(string[i], advanceUsteps, style);
 	}
+	if (newLine) {
+		carriageReturn();
+		lineFeed();
+	}
 }
-void Wheelwriter::typeAsciiString(char* string, ww_typestyle style) {
-	typeAsciiString(string, charSpace_, style);
+void Wheelwriter::typeAsciiString(char* string, ww_typestyle style, bool newLine) {
+	typeAsciiString(string, charSpace_, style, newLine);
+}
+void Wheelwriter::typeAsciiLine(char* string, ww_typestyle style) {
+	typeAsciiString(string, style, true);
 }
 void Wheelwriter::typeCharacterInPlace(uint8_t wheelPosition, ww_typestyle style) {
 	sendCommand(TYPE_CHARACTER_NO_ADVANCE, wheelPosition, 0);
