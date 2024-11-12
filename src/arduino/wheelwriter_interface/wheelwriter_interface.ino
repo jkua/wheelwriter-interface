@@ -7,6 +7,7 @@
 
 #include "uart_9bit/Uart9bit.h"
 #include "Wheelwriter.h"
+#include "WheelwriterCommandLineInterface.h"
 #include "WheelwriterRestApi.h"
 
 WiFiServer webServer(80);
@@ -16,6 +17,10 @@ wheelwriter::Wheelwriter typewriter;
 WheelwriterRestApi restApi(webServer, typewriter);
 int inByte = 0;
 char inputBuffer[65];
+wheelwriter::WheelwriterCommandLineInterface serialCli(typewriter, 
+                                                       wheelwriter::IF_SERIAL);
+wheelwriter::WheelwriterCommandLineInterface typewriterCli(typewriter, 
+                                                           wheelwriter::IF_TYPEWRITER);
 bool terminalMode = false;
 
 void setup() {
@@ -75,28 +80,62 @@ void loop() {
   }
 
   while (typewriter.available()) {
-    char ascii;
-    wheelwriter::ww_keypress_type keypressType = typewriter.readKeypress(ascii, 0, 0);
-    if ((keypressType == wheelwriter::CODE_KEYPRESS) &&
-        (ascii == (wheelwriter::CODE_SHIFT_MASK | wheelwriter::CODE_I))) {
-      if (!terminalMode) {
-        while (typewriter.readKeypress(ascii, 0, 0) != wheelwriter::CODE_KEYPRESS) {}
-        typewriter.spinWheel();
-        terminalMode = true;
-        Serial.println("*** Entering terminal mode...");
-        typewriter.typeAsciiLine("[READY]");
-        std::string line;
-        typewriter.readLine(line);
-        Serial.print("Got: ");
-        Serial.println(line.c_str());
+    if (!terminalMode) {
+      char ascii;
+      wheelwriter::ww_keypress_type keypressType = typewriter.readKeypress(ascii, 0, 0);
+      if ((keypressType == wheelwriter::CODE_KEYPRESS) &&
+          (ascii == (wheelwriter::SHIFT_MASK | wheelwriter::KEY_I))) {
+        if (!terminalMode) {
+          while (typewriter.readKeypress(ascii, 0, 0) != wheelwriter::CODE_KEYPRESS) {}
+          typewriter.spinWheel();
+          terminalMode = true;
+          typewriterCli.logInfo("*** Entering terminal mode...\n");
+          typewriterCli.print("[READY]\n");
+        }
       }
-      else { 
-        while (typewriter.readKeypress(ascii, 0, 0) != wheelwriter::CODE_KEYPRESS) {}
-        typewriter.typeAsciiLine("[END]");
+    }
+    else { 
+      char* line = typewriterCli.readLine();
+      ParameterString parameters(line, ' ');
+      std::string command = parameters.getParameterString(0);
+
+      if ((command == "h") || (command == "help")) {
+        typewriterCli.print("Available functions:\n");
+        typewriterCli.print("help - print this help text\n");
+        typewriterCli.print("buffer - execute the buffer test\n");
+        typewriterCli.print("char - execute the character test\n");
+        typewriterCli.print("circle - execute the circle test\n");
+        // typewriterCli.print("keyboard - read input from the keyboard\n");
+        typewriterCli.print("loopback - execute the loopback test\n");
+        typewriterCli.print("query - query typewriter for information\n");
+        // typewriterCli.print("raw - send raw commands\n");
+        // typewriterCli.print("read - read bus commands\n");
+        // typewriterCli.print("relay - relay bus commands\n");
+        typewriterCli.print("sample - print a type sample\n");
+        // typewriterCli.print("type - type characters on the typewriter\n");
+        typewriterCli.print("wifi - set up WiFi\n");
+        typewriterCli.print("exit - exit terminal mode\n");
+      }
+      else if (command == "buffer") {
+        uint16_t numChars = parameters.getParameterInt(1, 10);
+        uint8_t charsPerLine = parameters.getParameterInt(2, 80);
+        
+        typewriterCli.print("[FUNCTION] Buffer Test %d / # Characters: %d, Characters Per Line: %d\n", numChars, charsPerLine);
+        typewriter.bufferTest(numChars, charsPerLine);
+      }
+      else if (command == "exit") {
+        typewriterCli.print("[END]\n");
         typewriter.spinWheel();
         typewriter.spinWheel();
         terminalMode = false;
-        Serial.println("*** Exited terminal mode.");
+        typewriterCli.logInfo("*** Exited terminal mode.\n");
+      }
+      else {
+        typewriterCli.logWarn("Invalid command: %s\n", command.c_str());
+        typewriterCli.print("[UNKNOWN FUNCTION] Enter 'help' to see a list of available commands\n");
+      }
+      if (terminalMode) {
+        typewriterCli.print("[READY]\n");
       }
     }
   }

@@ -100,74 +100,76 @@ enum ww_operation {
 	TAB_SET = 0x12
 };
 
-enum ww_code {	// Mapped with a Wheelwriter 3 keyboard
-  CODE_A = 0x04,
-	CODE_B = 0x1f,
-	CODE_C = 0x16,	// CTR
-	CODE_D = 0x14,
-	CODE_E = 0x12,
-	CODE_F = 0x1c,
-	CODE_G = 0x1d,
-	CODE_H = 0x25,
-	CODE_I = 0x2a,
-	CODE_J = 0x24,
-	CODE_K = 0x2c,
-	CODE_L = 0x34,
-	CODE_M = 0x26,
-	CODE_N = 0x72,	// CAPS
-	CODE_O = 0x32,
-	CODE_P = 0x3a,
-	CODE_Q = 0x02,	// Impression control?
-	CODE_R = 0x1a,
-	CODE_S = 0x0c,
-	CODE_T = 0x1b,
-	CODE_U = 0x22,  // UNDLN
-	CODE_V = 0x1e,
-	CODE_W = 0x0a,
-	CODE_X = 0x0e,
-	CODE_Y = 0x23,
-	CODE_Z = 0x06,
-	CODE_0 = 0x39,
-	CODE_1 = 0x01,	// Spell check on/off
-	CODE_2 = 0x09,	// Spell check - add word to dictionary
-	CODE_3 = 0x11,  // Spell check - delete word from dictionary
-	CODE_4 = 0x19,	// Spell check - adjust beep volume
-	CODE_5 = 0x18,	// Printer on/off
-	CODE_6 = 0x20,	// Printer - online
-	CODE_7 = 0x21,	// Printer - feed
-	CODE_8 = 0x29,	// Printer - set
-	CODE_9 = 0x31,
+enum ww_keycode {	// Mapped with a Wheelwriter 3 keyboard
+  KEY_A = 0x04,
+	KEY_B = 0x1f,
+	KEY_C = 0x16,	// CTR
+	KEY_D = 0x14,
+	KEY_E = 0x12,
+	KEY_F = 0x1c,
+	KEY_G = 0x1d,
+	KEY_H = 0x25,
+	KEY_I = 0x2a,
+	KEY_J = 0x24,
+	KEY_K = 0x2c,
+	KEY_L = 0x34,
+	KEY_M = 0x26,
+	KEY_N = 0x72,	// CAPS
+	KEY_O = 0x32,
+	KEY_P = 0x3a,
+	KEY_Q = 0x02,	// Impression control?
+	KEY_R = 0x1a,
+	KEY_S = 0x0c,
+	KEY_T = 0x1b,
+	KEY_U = 0x22,  // UNDLN
+	KEY_V = 0x1e,
+	KEY_W = 0x0a,
+	KEY_X = 0x0e,
+	KEY_Y = 0x23,
+	KEY_Z = 0x06,
+	KEY_0 = 0x39,
+	KEY_1 = 0x01,	// Spell check on/off
+	KEY_2 = 0x09,	// Spell check - add word to dictionary
+	KEY_3 = 0x11,  // Spell check - delete word from dictionary
+	KEY_4 = 0x19,	// Spell check - adjust beep volume
+	KEY_5 = 0x18,	// Printer on/off
+	KEY_6 = 0x20,	// Printer - online
+	KEY_7 = 0x21,	// Printer - feed
+	KEY_8 = 0x29,	// Printer - set
+	KEY_9 = 0x31,
 
-	CODE_PLUS_MINUS = 0x00,
-	CODE_HYPHEN = 0x38,
-	CODE_EQUAL = 0x28,
-	CODE_BACKSPACE = 0x50,			// BKSP 1/2
-	CODE_TAB = 0x4a,
-	CODE_HALF = 0x3b,		  			// ^2
-	CODE_RIGHT_BRACKET = 0x2b,	// ^3
-	CODE_RETURN = 0x56,
-	CODE_SEMICOLON = 0x3c,			// Section mark
-	CODE_APOSTROPHE = 0x3d,			// Paragraph mark
-	CODE_COMMA = 0x2e,
-	CODE_PERIOD = 0x36,
-	CODE_SLASH = 0x3f,
-	CODE_SPACE = 0x47,
-	CODE_ERASE = 0x4f,
+	KEY_PLUS_MINUS = 0x00,
+	KEY_HYPHEN = 0x38,
+	KEY_EQUAL = 0x28,
+	KEY_BACKSPACE = 0x50,			// BKSP 1/2
+	KEY_TAB = 0x4a,
+	KEY_HALF = 0x3b,		  			// ^2
+	KEY_RIGHT_BRACKET = 0x2b,	// ^3
+	KEY_RETURN = 0x56,
+	KEY_SEMICOLON = 0x3c,			// Section mark
+	KEY_APOSTROPHE = 0x3d,			// Paragraph mark
+	KEY_COMMA = 0x2e,
+	KEY_PERIOD = 0x36,
+	KEY_SLASH = 0x3f,
+	KEY_SPACE = 0x47,
+	KEY_ERASE = 0x4f,
 
-	CODE_MARGIN_RELEASE = 0x48,
-	CODE_LEFT_MARGIN = 0x42,
-	CODE_RIGHT_MARGIN = 0x4b,
-	CODE_TAB_SET = 0x4c,
-	CODE_TAB_CLEAR = 0x45,
+	KEY_MARGIN_RELEASE = 0x48,
+	KEY_LEFT_MARGIN = 0x42,
+	KEY_RIGHT_MARGIN = 0x4b,
+	KEY_TAB_SET = 0x4c,
+	KEY_TAB_CLEAR = 0x45,
 
-	CODE_PAPER_UP = 0x51,
-	CODE_PAPER_DOWN = 0x52,
-	CODE_MICRO_UP = 0x54,
-	CODE_MICRO_DOWN = 0x46,
-	CODE_LINE_SPACE = 0x57,
+	KEY_PAPER_UP = 0x51,
+	KEY_PAPER_DOWN = 0x52,
+	KEY_MICRO_UP = 0x54,
+	KEY_MICRO_DOWN = 0x46,
+	KEY_LINE_SPACE = 0x57,
 
-	CODE_KEY_RELEASED = 0x67, // Emitted when the Code key is released
-	CODE_SHIFT_MASK = 0x80	  // High bit indicates Shift pressed or Shift locked
+	PAPER_FEED_LEVER = 0x49,
+
+	SHIFT_MASK = 0x80,	  // High bit indicates Shift pressed or Shift locked
+	CODE_KEY_RELEASED = 0x67 // Emitted when the Code key is released
 };
 
 enum ww_typestyle {
@@ -345,7 +347,7 @@ public:
 	void setRepeatMode(ww_repeat_mode repeatMode);
 	ww_status queryStatus();
 	// ww_operation queryOperation();
-	void sendCode(ww_code code);
+	void sendCode(ww_keycode code);
 
 	char ascii2Printwheel(char ascii);
 	void setKeyboard(uint16_t keyboard);
@@ -384,7 +386,7 @@ public:
 	// - timeout sends the line after the the last character entered. 0 disables the timeout
 	// - corrected sends a corrected line if backspace is used. If false, the line is sent as entered, including backspaces
 	// - Returns 1 if a line was read, 0 if timeout reached (characters in buffer available)
-	int readLine(std::string& line, uint32_t timeout=0, bool corrected=true);
+	int readLine(std::string& line, uint32_t timeout=0, bool newLine=true, bool corrected=true);
 
 	class TypeStream {
 	public:

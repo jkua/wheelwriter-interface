@@ -51,3 +51,65 @@ understand the query responses. Looking at the logic board output, it prepends
 any type or movement command with a status query. Likely this is to ensure that 
 the carriage and platen have stopped moving before issuing the next type or 
 movement command.
+
+### Commands
+| Command | Data 1           | Data 2        | Response              | Description                     |
+|---------|------------------|---------------|-----------------------|---------------------------------|
+| `0x00`  | -                | -             | `0x06`: Wheelwriter 3 | Query model, returns model byte |
+|         |                  |               | `0x25`: Wheelwriter 5 |                                 |
+|         |                  |               | `0x26`: Wheelwriter 6 |                                 |
+| `0x01`  | -                | -             | Wheel pitch (see command `0x08`) | Power-on reset, moves to left stop, returns wheel pitch |
+| `0x02`  | `wheel_position` | `IGNORED`     | `0x00`                | Type character without advancing    |
+| `0x03`  | `wheel_position` | `uspaces`     | `0x00`                | Type character and advance carriage to the right |
+| `0x04`  | `wheel_position` | `uspaces`     | `0x00`                | Type on erase ribbon and advance carriage to the right |
+| `0x05`  | bit 7: `dir` (0: paper down, 1 up) | -             | `0x00`                | Rotate platen   |
+|         | bits 0-6: `usteps`                 | -             |                       |                 |
+| `0x06`  | bit 7: `dir` (0: left, 1 right)    | `usteps_low`  | `0x00`                | Move carriage   |
+|         | bits 0-6: `usteps_high`            |               |                       |                 |
+| `0x07`  | -                | -             | `0x00`                | Spin wheel                      |
+| `0x08`  | -                | -             | `0x08`: Proportional  | Query printwheel pitch          |
+|         |                  |               | `0x10`: 15 cpi        |                                 |
+|         |                  |               | `0x20`: 12 cpi        |                                 |
+|         |                  |               | `0x21`: No wheel      |                                 |
+|         |                  |               | `0x40`: 10 cpi        |                                 |
+| `0x09`  | UNVERIFIED       | -             | UNKNOWN               | For repeating behavior? Unverified |
+| `0x0a`  | `0x00`           | -             | `0x00`                | Unknown - emitted during power up after power-on reset command |
+| `0x0b`  | -    	         | -             | `0x00`: Ready         | Query status - sent prior to all typing and motion commands |
+|         |                  |               | `0x04`: Carriage moving? |                                                            |
+|         |                  |               | `0x07`: Carriage move complete? |                                                     |
+|         |                  |               | `0x10`: Platen moving?|                                                               |
+|         |                  |               | `0x14`:	             |                                                               |
+|         |                  |               | `0x40`: Printwheel changed or left limit switch pressed |                             |
+| `0x0c`  | `keypressed`     | `0x46`: Start keypress event  | `0x04`, `0x10` | Sent prior to typing/motion commands |
+|         |                  | `0x08`: Backspace and some space events | `0x010`, `0xf0` at left margin | Sent after typing/motion command and before `0x44` |
+|         |                  | `0x44`: Wait for motion?      | `0x40`, `0x80` | Sent after typing/motion command - can take a long time to get response |
+|         |                  | `0x06`: End keypress event    | `0x04`, `0x10`, `0x39` | Last query of typing/motion command set - fast response |
+|         |                  | `0x01`: Wait for platen/carriage move | UNKNOWN | Sent after platen/tab commands |
+| `0x0d`  | 
+
+### Typing command sequence
+ 1. Query status - `0x0b` / `0x00`
+ 2. Query - `0x0c` `keypressed` `0x46` / variable
+ 3. Type and advance - `0x03` `wheel_position` `uspaces` / `0x00`
+ 4. (rare) Query - `0x0c` `keypressed` `0x08` / variable
+ 5. Query - `0x0c` `keypressed` `0x44` / variable
+ 6. Query - `0x0c` `keypressed` `0x06` / variable
+ ### Return command sequence
+ 1. Query status - `0x0b` / `0x00`
+ 2. Move platen - `0x05`
+ 3. Move carriage - `0x06`
+ 4. Query - `0x0c` `0x56` (return key) `0x01` / `0x20`
+ ### Tab command sequence
+ Note that pressing the space bar uses the typing command sequence above
+ 1. Query status - `0x0b` / `0x00`
+ 2. Move carriage - `0x06`
+ 3. Query - `0x0c` `0x4a` (tab) `0x01` / `0x20`
+ ### Platen command sequence (paper up/down)
+ 1. Query status - `0x0b` / `0x00`
+ 2. Move platen - `0x05`
+ 3. Query - `0x0c` `keypressed` (return key) `0x01` / `0x20`
+ ### Power on sequence
+ 1. Power-on reset - `0x01` / `0x20`
+ 2. Unknown - `0x0a` `0x00` / `0x00`
+ 3. Query - `0x0c` `0x00` `0x01` / `0x20`
+ 4. Move carriage right 120 uspaces (1") - `0x06` `0x80` `0x78` / `0x00` 

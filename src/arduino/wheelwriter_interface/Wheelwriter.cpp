@@ -225,6 +225,12 @@ ww_keypress_type Wheelwriter::readKeypress(char& ascii, uint8_t blocking, uint8_
 	ww_platen_direction platenDir;
 	ww_carriage_direction carriageDir;
 
+	// TODO - change this to look for 0x0c <keypress> 0x46 event
+  //                             or 0x0c 0x50 0x08 event (backspace)
+  //                             or 0x0c <keypress> 0x01 (return, paper up/down)
+	// Or for nonblocking, just look for 0x0c <keypress> 0x06/0x01 events
+	// Most reliabie is probably to wait for a 0x0b event and then a 0x0c event
+
 	if (commandLength > 0) {
 		switch (bufferIn_[1]) {
 			case TYPE_CHARACTER_AND_ADVANCE:
@@ -272,9 +278,11 @@ void Wheelwriter::waitReady(ww_command command) {
 	}
 
 	while (true) {
-		readFlush(0);
+		readFlush(1);
 		uint8_t error, failIndex;
 		uint8_t status = _sendCommand(defaultAddress_, QUERY_STATUS, 0, 0, error, failIndex, 0);
+		Serial.write("waitReady() status: 0x");
+		Serial.println(status, HEX);
 		if (status == 0) {
 			return;
 		}
@@ -490,7 +498,7 @@ ww_status Wheelwriter::queryStatus() {
 // 	sendCommand(QUERY_OPERATION);
 // 	return NO_OPERATION;
 // }
-void Wheelwriter::sendCode(ww_code code) {
+void Wheelwriter::sendCode(ww_keycode code) {
 	sendCommand(SEND_CODE, code);
 }
 
@@ -657,7 +665,7 @@ void Wheelwriter::queryToJson(std::string& json) {
 	json += std::to_string(queryStatus());
 	json += "}";
 }
- int Wheelwriter::readLine(std::string& line, uint32_t timeout, bool corrected) {
+ int Wheelwriter::readLine(std::string& line, uint32_t timeout, bool newLine, bool corrected) {
 	uint32_t startTime = millis();
 	uint32_t elapsedTime = 0;
 	Serial.write("Wheelwriter::readLine()\n");
@@ -682,7 +690,9 @@ void Wheelwriter::queryToJson(std::string& json) {
 				Serial.print("\\b");
 			}
 			else if (ascii == '\n') {
-				line += ascii;
+				if (newLine) {
+					line += ascii;
+				}
 				Serial.println("\\n");
 			}
 			else {
