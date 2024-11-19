@@ -15,7 +15,7 @@ namespace PicoRest {
 
 class HttpRequest {
 public:
-  HttpRequest() : numHeaderLines(0), parseState(REQUEST), error(false) {}
+  HttpRequest() : numHeaderLines(0), parseState(REQUEST), contentLength(0), error(false) {}
 
   int parseChar(char c);
   void print();

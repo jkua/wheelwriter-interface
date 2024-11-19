@@ -75,11 +75,12 @@ void setup() {
 }
 
 void loop() {
-  while (!Serial.available() && !typewriter.available()) {
+  while (!Serial.available()) {// && !typewriter.available()) {
     restApi.processClient();
   }
 
-  while (typewriter.available()) {
+  // while (typewriter.available()) {
+  while (false) {
     if (!terminalMode) {
       char ascii;
       wheelwriter::ww_keypress_type keypressType = typewriter.readKeypress(ascii, 0, 0);

@@ -220,10 +220,14 @@ uint8_t Wheelwriter::readCommand(uint8_t blocking, uint8_t verbose) {
 	}
 }
 ww_keypress_type Wheelwriter::readKeypress(char& ascii, uint8_t blocking, uint8_t verbose) {
+	ascii = 0;
+
 	uint8_t commandLength = readCommand(blocking, verbose);
 	ww_keypress_type keypressType;
 	ww_platen_direction platenDir;
+	uint16_t platenDist;
 	ww_carriage_direction carriageDir;
+	uint8_t carriageDist;
 
 	// TODO - change this to look for 0x0c <keypress> 0x46 event
   //                             or 0x0c 0x50 0x08 event (backspace)
@@ -232,29 +236,35 @@ ww_keypress_type Wheelwriter::readKeypress(char& ascii, uint8_t blocking, uint8_
 	// Most reliabie is probably to wait for a 0x0b event and then a 0x0c event
 
 	if (commandLength > 0) {
+		keypressType = NO_KEYPRESS;
+
 		switch (bufferIn_[1]) {
 			case TYPE_CHARACTER_AND_ADVANCE:
 				ascii = usPrintwheel2AsciiTable[bufferIn_[2]];
 				keypressType = CHARACTER_KEYPRESS;
 				break;
 			case MOVE_PLATEN:
+				platenDist = bufferIn_[2] & 0x7f;
 				platenDir = (ww_platen_direction)(bufferIn_[2] & 0x80);
-				if (platenDir == PLATEN_DIRECTION_UP) {
+				if ((platenDir == PLATEN_DIRECTION_UP) &&
+				    (platenDist == lineSpace_)) {
 					ascii = '\n';
 					keypressType = RETURN_KEYPRESS;
 				}
-				else {
-					keypressType = NO_KEYPRESS;
-				}
 				break;
 			case MOVE_CARRIAGE:
+				carriageDist = (bufferIn_[2] & 0x7f << 8) | bufferIn_[3];
 				carriageDir = (ww_carriage_direction)(bufferIn_[2] & 0x80);
-				keypressType = SPACE_KEYPRESS;
-				if (carriageDir == CARRIAGE_DIRECTION_RIGHT) {
-					ascii = ' ';
-				}
-				else {
-					ascii = 0x08;
+				if ((carriageDist == charSpace_) ||
+				    (carriageDist == 10) || 
+				    (carriageDist == 12)) {
+					keypressType = SPACE_KEYPRESS;
+					if (carriageDir == CARRIAGE_DIRECTION_RIGHT) {
+						ascii = ' ';
+					}
+					else {
+						ascii = 0x08;
+					}
 				}
 				break;
 			case SEND_CODE:
@@ -262,6 +272,7 @@ ww_keypress_type Wheelwriter::readKeypress(char& ascii, uint8_t blocking, uint8_
 				keypressType = CODE_KEYPRESS;
 				break;
 			default:
+				ascii = 0;
 				keypressType = NO_KEYPRESS;
 		}
 	}
@@ -659,7 +670,8 @@ void Wheelwriter::queryToJson(std::string& json) {
 	json += std::to_string(queryModel());
 	json += ",";
 	json += "\"wheel\":";
-	json += std::to_string(queryPrintwheel());
+	setSpaceForWheel();
+	json += std::to_string(wheel_);
 	json += ",";
 	json += "\"status\":";
 	json += std::to_string(queryStatus());
