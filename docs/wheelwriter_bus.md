@@ -72,7 +72,7 @@ movement command.
 |         |                  |               | `0x20`: 12 cpi        |                                 |
 |         |                  |               | `0x21`: No wheel      |                                 |
 |         |                  |               | `0x40`: 10 cpi        |                                 |
-| `0x09`  | UNVERIFIED       | -             | UNKNOWN               | For repeating behavior? Unverified |
+| `0x09`  | `impression_ctrl`| -             | `0x00`                | Sets the hammer strike power. On a Wheelwriter 3 this is `0x00` or `0x01`. Later models (WW10) appear to have three levels. Also set with Code+Q |
 | `0x0a`  | `0x00`           | -             | `0x00`                | Unknown - emitted during power up after power-on reset command |
 | `0x0b`  | -    	         | -             | `0x00`: Ready         | Query status - sent prior to all typing and motion commands |
 |         |                  |               | `0x04`: Carriage moving? |                                                            |
