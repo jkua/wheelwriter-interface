@@ -13,10 +13,10 @@ class WWMode(object):
 	def __exit__(self, exception_type, exception_value, traceback):
 		self.wwClient._exitMode()
 
-	def switchMode(self, modeName):
+	def switchMode(self, modeName, parameterString=None):
 		self.wwClient.connect()
-		print(f'\n*** Switching to {modeName} mode ***')
-		self.wwClient.ser.write(f'{modeName}\n'.encode())
+		print(f'\n*** Switching to {modeName} mode with parameters {parameterString} ***')
+		self.wwClient.ser.write(f'{modeName} {parameterString}\n'.encode())
 
 		while True:
 			line = self.wwClient.ser.readline().decode().strip()
@@ -137,12 +137,15 @@ class WWRelayMode(WWMode):
 
 
 class WWTypeMode(WWMode):
-	def __init__(self, wwClient):
+	def __init__(self, wwClient, keyboard=1, noPrintableEscape=False):
 		super().__init__(wwClient)
 		self.characterCounter = 0
+		self.keyboard = keyboard
+		self.noPrintableEscape = noPrintableEscape
 
 	def __enter__(self):
-		super().switchMode('type')
+		parameterString = f'{self.keyboard} {int(not self.noPrintableEscape)}'
+		super().switchMode('type', parameterString)
 		return self
 
 	def sendTextLines(self, textLines):

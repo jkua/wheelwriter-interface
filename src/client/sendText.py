@@ -17,5 +17,5 @@ if __name__=='__main__':
 	args = parser.parse_args()
 
 	with WheelwriterInterface(args.device) as interface:
-		with WWTypeMode(interface) as typeMode:
+		with WWTypeMode(interface, args.keyboard, args.noPrintableEscape) as typeMode:
 			typeMode.sendTextFile(args.file, endLines=args.endlines)
