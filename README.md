@@ -73,8 +73,13 @@ Babcock and Stephen Casner to interface to a Wheelwriter 1000 by instead
 sitting between the keyboard and the logic controller. This work was developed 
 to build a general-purpose ASCII terminal.
 
+### Derived work that builds on this project
 [Generative Daily Planner](https://www.thingswemake.com/generative-daily-planner)
 ([Github](https://github.com/joshsucher/wheelwriter-gpt-agenda)) by Josh 
 Sucher, is a "GPT-4-powered bot that ingests email, calendar and contacts from 
-a range of sources (mainly Gmail, Gcal and iCloud) and outputs a daily agenda" 
-and utilizes code from this repo.
+a range of sources (mainly Gmail, Gcal and iCloud) and outputs a daily agenda".
+
+[wheelwriter6-printer](https://github.com/knicknackery/wheelwriter6-printer) 
+by Brad/[knickknackery](https://github.com/knicknackery) ports this to a Pico W to interface a Wheelwriter 6 Series II with a CUPS 
+driver to convert a Wheelwriter into a wireless printer! Includes a custom font 
+for the WW6 Courier 12 wheel for a WYWISYG experience
